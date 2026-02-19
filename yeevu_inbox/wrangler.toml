@@ -1,0 +1,18 @@
+name = "deliverability-yeevu"
+main = ".open-next/worker.js"
+compatibility_date = "2026-01-25"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+NEXT_PUBLIC_BASE_PATH = ""
+
+# KV Namespace for storing user projects
+# Create with: wrangler kv namespace create PROJECTS_KV
+# Then update the id below with the returned namespace ID
+[[kv_namespaces]]
+binding = "PROJECTS_KV"
+id = "c62f299e25a24503a5af21dc52992afd"

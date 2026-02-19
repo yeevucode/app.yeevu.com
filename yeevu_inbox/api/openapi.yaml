@@ -1,0 +1,213 @@
+openapi: 3.0.0
+info:
+  title: YeevuInbox API
+  description: Email Deliverability Checker API
+  version: 0.1.0
+  contact:
+    name: Yeevu Support
+    email: support@yeevu.app
+
+servers:
+  - url: https://yeevu-inbox.app/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Development
+
+paths:
+  /scan:
+    post:
+      summary: Trigger a deliverability scan
+      operationId: createScan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - domain
+              properties:
+                domain:
+                  type: string
+                  description: Domain to scan (e.g., example.com)
+                  example: example.com
+                checks:
+                  type: array
+                  items:
+                    type: string
+                    enum: [mx, spf, dkim, dmarc, smtp]
+                  description: Checks to run (default all)
+                  example: [mx, spf, dkim, dmarc, smtp]
+                options:
+                  type: object
+                  description: Optional scan parameters
+                  properties:
+                    dkim_selectors:
+                      type: array
+                      items:
+                        type: string
+                      description: DKIM selectors to probe
+                      example: [default, mail, selector1]
+                    smtp_timeout:
+                      type: integer
+                      description: SMTP timeout in ms (default 10000)
+                      example: 10000
+      responses:
+        "202":
+          description: Scan accepted and queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanResponse"
+        "400":
+          description: Invalid domain or parameters
+        "429":
+          description: Rate limit exceeded
+
+  /scan/{scanId}:
+    get:
+      summary: Get scan results by ID
+      operationId: getScan
+      parameters:
+        - name: scanId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Scan ID returned from POST /scan
+      responses:
+        "200":
+          description: Scan results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanReport"
+        "404":
+          description: Scan not found
+        "202":
+          description: Scan still in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanResponse"
+
+  /widget/scan:
+    post:
+      summary: Widget-friendly scan endpoint (CORS-enabled, DNS-only)
+      operationId: createWidgetScan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - domain
+              properties:
+                domain:
+                  type: string
+                  description: Domain to scan
+      responses:
+        "202":
+          description: Scan accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanResponse"
+
+components:
+  schemas:
+    ScanResponse:
+      type: object
+      properties:
+        scan_id:
+          type: string
+          description: Unique scan identifier
+          example: scan_abc123def456
+        domain:
+          type: string
+          example: example.com
+        status:
+          type: string
+          enum: [pending, completed, failed]
+          example: pending
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-17T10:00:00Z"
+
+    ScanReport:
+      type: object
+      properties:
+        scan_id:
+          type: string
+        domain:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [completed, failed]
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Overall deliverability score
+        categories:
+          type: object
+          properties:
+            mx:
+              $ref: "#/components/schemas/CheckResult"
+            spf:
+              $ref: "#/components/schemas/CheckResult"
+            dkim:
+              $ref: "#/components/schemas/CheckResult"
+            dmarc:
+              $ref: "#/components/schemas/CheckResult"
+            smtp:
+              $ref: "#/components/schemas/CheckResult"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/Issue"
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    CheckResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pass, warn, fail]
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+        details:
+          type: object
+          description: Check-specific details
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    Issue:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [error, warning, info]
+        check:
+          type: string
+          example: spf
+        title:
+          type: string
+          example: SPF lookup limit exceeded
+        description:
+          type: string
+        remediation:
+          type: string
+          description: Suggested fix
