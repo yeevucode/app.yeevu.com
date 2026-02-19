@@ -1,0 +1,240 @@
+<!-- ai-content-creator/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yeevu AI Content Creator</title>
+    <meta name="description" content="Generate blog posts, social media content, and long-form articles with AI tailored to your brand, audience, and goals." />
+    <meta property="og:title" content="Yeevu AI Content Creator" />
+    <meta property="og:description" content="Generate blog posts, social media content, and long-form articles with AI tailored to your brand, audience, and goals." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://app.yeevu.com/content-creator/" />
+    <meta property="og:site_name" content="Yeevu AI" />
+    <meta property="og:image" content="https://app.yeevu.com/favicon-32x32.png" />
+    <meta property="og:image:width" content="32" />
+    <meta property="og:image:height" content="32" />
+    <link rel="canonical" href="https://app.yeevu.com/content-creator/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Yeevu AI Content Creator" />
+    <meta name="twitter:description" content="Generate blog posts, social media content, and long-form articles with AI tailored to your brand, audience, and goals." />
+    <meta name="twitter:image" content="https://app.yeevu.com/favicon-32x32.png" />
+    <meta name="robots" content="noindex, nofollow" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Yeevu AI Content Creator",
+      "description": "Generate blog posts, social media content, and long-form articles with AI tailored to your brand, audience, and goals.",
+      "url": "https://app.yeevu.com/content-creator/",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Yeevu AI",
+        "url": "https://app.yeevu.com/"
+      }
+    }
+    </script>
+    <!-- Include meta tags, fonts, and common styles -->
+    
+    
+    
+    
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/styles.css?v=1.0.1" />
+    <style>
+        /* Specific styles for header-nav and welcome message as in other apps */
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header-nav .home-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+        .header-nav .home-link:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+        #welcomeMessage {
+            text-align: center;
+            color: var(--background-light);
+            font-size: 1.1rem;
+            margin-top: 1rem;
+            padding: 0 1.5rem;
+        }
+        /* Specific styles for checkbox groups */
+        .checkbox-group {
+            margin-bottom: 1.2rem;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 0.8rem;
+            background: var(--background-light);
+        }
+        .checkbox-group label {
+            display: flex; /* Use flex for alignment */
+            align-items: center;
+            margin-bottom: 0.5rem; /* Space between checkbox labels */
+            font-weight: normal; /* Reset from default label bold */
+        }
+        .checkbox-group label input[type="checkbox"] {
+            margin-right: 0.8rem;
+            vertical-align: middle;
+            accent-color: var(--secondary-color);
+            width: auto; /* Override 100% width from general input style */
+            margin-bottom: 0; /* Remove bottom margin from general input style */
+        }
+        .checkbox-group legend {
+            font-family: 'Inter', sans-serif; /* Use Inter for checkbox group legend */
+            font-weight: 600;
+            color: var(--text-color-dark);
+            font-size: 1rem;
+            padding: 0 0.5rem;
+            margin-bottom: 0.5rem;
+            display: block; /* Ensure it takes full width */
+        }
+
+        @media (max-width: 768px) {
+            .header-nav {
+                flex-direction: column;
+                padding: 0 10px;
+            }
+            .header-nav .home-link {
+                margin-bottom: 10px;
+            }
+            #welcomeMessage {
+                font-size: 1rem;
+            }
+        }
+    </style>
+
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "v6kklnqwmi");
+</script>
+</head>
+<body>
+    <header>
+        <div class="header-nav">
+            <a href="/" class="home-link">← Back to Homepage</a>
+            <div id="welcomeMessage" style="display:none;"></div>
+            <div></div>
+        </div>
+        <h1>Yeevu AI Content Creator</h1>
+        <p>Generate high-quality content with AI</p>
+    </header>
+
+    <div class="container">
+        <!-- Login and Paywall sections, identical to other products -->
+        <div class="login-prompt" id="loginPrompt">
+            <h2>Please Log In</h2>
+            <p>Sign in to start creating content or create an account to get started.</p>
+            <button id="loginBtn">Sign In</button>
+            <button id="signupBtn">Sign Up</button>
+        </div>
+
+        <div class="paywall-overlay" id="paywallOverlay">
+            <div class="paywall-content">
+                <h2>Unlock Unlimited Content Creation</h2>
+                <p>Subscribe to unlock advanced features like long-form articles and custom tone generation.</p>
+                <button id="subscribeBtn">Subscribe Now</button>
+            </div>
+        </div>
+
+        <div id="mainContent" style="display:none;">
+            <h2>AI Content Generation Tools</h2>
+            <div class="resolver-selector" role="tablist" aria-label="Select Content Tool">
+                <button type="button" class="mode-btn active" data-mode="blog-post" role="tab" aria-selected="true" id="tab-blog-post">Blog Post</button>
+                <button type="button" class="mode-btn" data-mode="social-media" role="tab" aria-selected="false" id="tab-social-media">Social Media</button>
+                <button type="button" class="mode-btn tooltip-premium" data-mode="long-form" role="tab" aria-selected="false" id="tab-long-form">Long-Form Article</button>
+            </div>
+            <div id="form-message"></div>
+            <textarea id="webhook-response" class="response-box" readonly style="display: none;"></textarea>
+
+            <!-- Example form for Blog Post -->
+            <form id="form-blog-post" class="resolver-form" action="https://n8n.tomiwa.io/webhook/ai-content-creator-blog" method="post" novalidate role="tabpanel" aria-labelledby="tab-blog-post">
+                <h3>Generate Blog Post</h3>
+                <fieldset>
+                    <label for="blog_topic">Topic:</label>
+                    <input type="text" id="blog_topic" name="topic" placeholder="e.g., Benefits of AI in small business" required>
+                    <label for="blog_keywords">Keywords (comma-separated):</label>
+                    <input type="text" id="blog_keywords" name="keywords" placeholder="e.g., AI, small business, automation">
+                    <label for="blog_tone">Tone:</label>
+                    <select id="blog_tone" name="tone">
+                        <option value="informative">Informative</option>
+                        <option value="engaging">Engaging</option>
+                        <option value="professional">Professional</option>
+                        <option value="casual">Casual</option>
+                    </select>
+                </fieldset>
+                <button type="submit">Generate Blog Post</button>
+            </form>
+
+            <!-- Example form for Social Media (display:none by default) -->
+            <form id="form-social-media" class="resolver-form" action="https://n8n.tomiwa.io/webhook/ai-content-creator-social" method="post" novalidate role="tabpanel" aria-labelledby="tab-social-media" style="display:none;">
+                <h3>Generate Social Media Post</h3>
+                <fieldset>
+                    <legend>Select Platforms</legend>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" name="social_platforms" value="facebook" /> Facebook
+                        </label>
+                        <label>
+                            <input type="checkbox" name="social_platforms" value="instagram" /> Instagram
+                        </label>
+                        <label>
+                            <input type="checkbox" name="social_platforms" value="linkedin" /> LinkedIn
+                        </label>
+                        <label>
+                            <input type="checkbox" name="social_platforms" value="twitter" /> Twitter (X)
+                        </label>
+                        <label>
+                            <input type="checkbox" name="social_platforms" value="pinterest" /> Pinterest
+                        </label>
+                        <label>
+                            <input type="checkbox" name="social_platforms" value="tiktok" /> TikTok
+                        </label>
+                    </div>
+                    <label for="social_description">Brief Description:</label>
+                    <textarea id="social_description" name="description" rows="3" placeholder="What is the post about?"></textarea>
+                </fieldset>
+                <button type="submit">Generate Social Media Post</button>
+            </form>
+
+            <!-- Example form for Long-Form Article (premium, display:none by default) -->
+            <form id="form-long-form" class="resolver-form" action="https://n8n.tomiwa.io/webhook/ai-content-creator-long" method="post" novalidate role="tabpanel" aria-labelledby="tab-long-form" style="display:none;">
+                <h3>Generate Long-Form Article</h3>
+                <fieldset>
+                    <label for="long_topic">Detailed Topic:</label>
+                    <input type="text" id="long_topic" name="topic" placeholder="e.g., The Comprehensive Guide to AI Ethics" required>
+                    <label for="long_length">Desired Length (words):</label>
+                    <input type="number" id="long_length" name="length" min="1000" step="500" value="2000">
+                    <label for="long_audience">Target Audience:</label>
+                    <input type="text" id="long_audience" name="audience" placeholder="e.g., Researchers, Tech enthusiasts">
+                </fieldset>
+                <button type="submit">Generate Long-Form Article</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        © 2025 Yeevu AI. All rights reserved.
+        <p><a href="https://yeevu.com/contact">Contact Us</a> for custom enterprise pricing.</p>
+    </footer>
+
+    <script type="module" src="./script.js"></script>
+</body>
+</html>

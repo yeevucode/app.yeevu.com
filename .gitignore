@@ -1,0 +1,52 @@
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/.next/
+**/.open-next/
+**/out/
+**/dist/
+**/build/
+
+# Hosting / tooling
+**/.vercel/
+**/.wrangler/
+*.wrangler
+
+# Logs
+logs/
+**/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+.env.production.local
+
+# Tests / coverage
+coverage/
+**/coverage/
+.jest-cache/
+**/.jest-cache/
+*.tsbuildinfo
+
+# Caches
+.eslintcache
+**/.cache/
+**/.parcel-cache/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

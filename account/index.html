@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yeevu AI Account</title>
+    <meta name="description" content="Your Yeevu AI account with profile details, user ID, and subscription access for support and product enablement." />
+    <meta property="og:title" content="Yeevu AI Account" />
+    <meta property="og:description" content="Your Yeevu AI account with profile details, user ID, and subscription access for support and product enablement." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://app.yeevu.com/account/" />
+    <meta property="og:site_name" content="Yeevu AI" />
+    <meta property="og:image" content="https://app.yeevu.com/favicon-32x32.png" />
+    <meta property="og:image:width" content="32" />
+    <meta property="og:image:height" content="32" />
+    <link rel="canonical" href="https://app.yeevu.com/account/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Yeevu AI Account" />
+    <meta name="twitter:description" content="Your Yeevu AI account with profile details, user ID, and subscription access for support and product enablement." />
+    <meta name="twitter:image" content="https://app.yeevu.com/favicon-32x32.png" />
+    <meta name="robots" content="noindex, nofollow" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Yeevu AI Account",
+      "description": "Your Yeevu AI account with profile details, user ID, and subscription access for support and product enablement.",
+      "url": "https://app.yeevu.com/account/",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Yeevu AI",
+        "url": "https://app.yeevu.com/"
+      }
+    }
+    </script>
+    <link rel="stylesheet" href="/styles/styles.css?v=1.0.2" />
+    <style>
+        .status-card {
+            background: var(--background-light);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+        }
+        .account-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .account-subtitle {
+            margin-top: 0.35rem;
+            color: #666;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.3rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border: 1px solid transparent;
+            background: #f2f2f2;
+            color: #333;
+            white-space: nowrap;
+        }
+        .status-pill--active {
+            background: var(--secondary-color);
+            color: var(--primary-color);
+            border-color: var(--secondary-color);
+        }
+        .status-pill--inactive {
+            background: #1a1a1a;
+            color: #f5f5f5;
+            border-color: #1a1a1a;
+        }
+        .status-pill--pending {
+            background: #f0f0f0;
+            color: #333;
+            border-color: #d5d5d5;
+        }
+        .account-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+        .account-section {
+            background: var(--background-gray);
+            border-radius: 10px;
+            padding: 1.1rem 1.2rem;
+            border: 1px solid var(--card-border);
+        }
+        .account-section h3 {
+            margin: 0 0 0.75rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--primary-color);
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-bottom: 0.9rem;
+        }
+        .field:last-child {
+            margin-bottom: 0;
+        }
+        .field-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .field-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            word-break: break-all;
+        }
+        .field-value.mono {
+            font-family: "Courier New", monospace;
+        }
+        .subscription-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .subscription-list li {
+            background: var(--secondary-color);
+            color: var(--primary-color);
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .subscription-list li.is-empty {
+            background: var(--background-light);
+            color: #666;
+            border: 1px dashed var(--card-border);
+            font-weight: 600;
+        }
+        .status-footnote {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .status-help {
+            margin-top: 0.5rem;
+            color: #666;
+        }
+        .status-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            justify-content: flex-end;
+        }
+        .status-btn {
+            padding: 0.65rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--secondary-color);
+            background: var(--secondary-color);
+            color: var(--primary-color);
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+        .status-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+        .status-btn-outline {
+            background: transparent;
+            color: var(--secondary-color);
+        }
+        .status-btn-outline:hover {
+            background: var(--secondary-color);
+            color: var(--primary-color);
+        }
+        .status-btn[disabled] {
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+        }
+        @media (max-width: 768px) {
+            .account-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .status-actions {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "v6kklnqwmi");
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Your Account</h1>
+        <p>View your account details and share your User ID with support to enable products.</p>
+    </header>
+    <div class="container">
+        <div class="login-prompt" id="accountLoginPrompt" style="display:none;">
+            <h2>Please Log In</h2>
+            <p>Sign in to view your account details and manage your product access.</p>
+            <button id="accountLoginBtn">Sign In</button>
+            <button id="accountSignupBtn">Sign Up</button>
+        </div>
+        <div class="status-card" id="accountCard">
+            <div class="account-header">
+                <div>
+                    <h2>Account Overview</h2>
+                    <p class="account-subtitle">Manage identity and access across Yeevu AI.</p>
+                </div>
+                <span id="auth-pill" class="status-pill status-pill--pending">Checking</span>
+            </div>
+            <p id="auth-status">Checking session...</p>
+            <p id="auth-help" class="status-help"></p>
+            <div class="account-sections">
+                <div class="account-section">
+                    <h3>Identity</h3>
+                    <div class="field">
+                        <span class="field-label">Email</span>
+                        <span id="user-email" class="field-value">-</span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">User ID (sub)</span>
+                        <span id="user-id" class="field-value mono">-</span>
+                    </div>
+                </div>
+                <div class="account-section">
+                    <h3>Access</h3>
+                    <div class="field">
+                        <span class="field-label">Active Subscriptions</span>
+                        <ul id="user-subscriptions" class="subscription-list"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="status-actions">
+                <button id="copy-user-id-btn" class="status-btn" type="button">Copy User ID</button>
+                <button id="copy-email-btn" class="status-btn status-btn-outline" type="button">Copy Email</button>
+                <button id="page-login-btn" class="status-btn" type="button">Sign In</button>
+            </div>
+            <div id="token-status" class="status-footnote"></div>
+        </div>
+    </div>
+    <footer>
+        &copy; 2026 Yeevu AI. All rights reserved.
+    </footer>
+    <script type="module" src="./script.js"></script>
+</body>
+</html>

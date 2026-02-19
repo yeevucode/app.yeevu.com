@@ -1,0 +1,299 @@
+<!-- dns-email-resolver/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yeevu AI DNS & Email Resolver</title>
+    <meta name="description" content="AI DNS and email resolver for fast diagnostics, SPF/DKIM/DMARC setup, and automated fixes to improve deliverability." />
+    <meta property="og:title" content="Yeevu AI DNS & Email Resolver" />
+    <meta property="og:description" content="AI DNS and email resolver for fast diagnostics, SPF/DKIM/DMARC setup, and automated fixes to improve deliverability." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://app.yeevu.com/dns-email-resolver/" />
+    <meta property="og:site_name" content="Yeevu AI" />
+    <meta property="og:image" content="https://app.yeevu.com/favicon-32x32.png" />
+    <meta property="og:image:width" content="32" />
+    <meta property="og:image:height" content="32" />
+    <link rel="canonical" href="https://app.yeevu.com/dns-email-resolver/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Yeevu AI DNS & Email Resolver" />
+    <meta name="twitter:description" content="AI DNS and email resolver for fast diagnostics, SPF/DKIM/DMARC setup, and automated fixes to improve deliverability." />
+    <meta name="twitter:image" content="https://app.yeevu.com/favicon-32x32.png" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Yeevu AI DNS & Email Resolver",
+      "description": "AI DNS and email resolver for fast diagnostics, SPF/DKIM/DMARC setup, and automated fixes to improve deliverability.",
+      "url": "https://app.yeevu.com/dns-email-resolver/",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Yeevu AI",
+        "url": "https://app.yeevu.com/"
+      }
+    }
+    </script>
+    
+    
+    
+    
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/styles.css?v=1.0.3" /> 
+    
+
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "v6kklnqwmi");
+</script>
+</head>
+<body>
+    <header>
+        <h1>Yeevu AI DNS & Email Resolver</h1>
+        <p>Precision Domain and Email Optimization for Elite Enterprises</p>
+    </header>
+    <div class="container">
+        <div class="login-prompt" id="loginPrompt">
+            <h2>Please Log In</h2>
+            <p>Sign in to access the resolver tools or create an account to get started.</p>
+            <button id="loginBtn">Sign In</button>
+            <button id="signupBtn">Sign Up</button>
+        </div>
+        <div class="paywall-overlay" id="paywallOverlay">
+            <div class="paywall-content">
+                <h2>Unlock Premium Features</h2>
+                <p>Unlock Yeevu’s AI Auto-Fix for seamless DNS and email optimization. Subscribe to our Premium plan or try it free with a trial.</p>
+                <button id="subscribeBtn">Subscribe Now</button>
+            </div>
+        </div>
+        <h2>AI-Powered DNS and Email Resolver</h2>
+        <div class="resolver-selector" role="tablist" aria-label="Select Resolver Mode">
+            <button type="button" class="mode-btn active" data-mode="website" role="tab" aria-selected="true" aria-controls="form-website" id="tab-website">Website Only</button>
+            <button type="button" class="mode-btn" data-mode="email" role="tab" aria-selected="false" aria-controls="form-email" id="tab-email">Email Only</button>
+            <button type="button" class="mode-btn" data-mode="both" role="tab" aria-selected="false" aria-controls="form-both" id="tab-both">Complete Setup</button>
+            <button type="button" class="mode-btn tooltip-premium" data-mode="ai" role="tab" aria-selected="false" aria-controls="form-ai" id="tab-ai">AI Auto-Fix <span class="tab-badge">Premium</span></button>
+            <button type="button" class="mode-btn" data-mode="other" role="tab" aria-selected="false" aria-controls="form-other" id="tab-other">Custom Tools</button>
+        </div>
+        <div id="form-message"></div> <!-- Added for displayMessage function -->
+        <textarea id="webhook-response" class="response-box" readonly style="display: none;"></textarea> <!-- Added for debugging responses -->
+        <form id="form-email" class="resolver-form" action="https://n8n.tomiwa.io/webhook/dns-form" method="post" novalidate role="tabpanel" aria-labelledby="tab-email" style="display:none;">
+            <fieldset>
+                <legend>Domain Information</legend>
+                <label for="emailDomainName">Domain Name</label>
+                <input type="text" id="emailDomainName" name="domainName" placeholder="example.com" required pattern="^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" />
+                <label for="emailZoneId">Domain Identifier</label>
+                <input type="text" id="emailZoneId" name="zoneId" placeholder="Domain Identifier" required />
+                <label for="emailOldRegistrar">Retrieve data from old registrar?</label>
+                <select id="emailOldRegistrar" name="oldRegistrar" required>
+                    <option value="">-- Select Option --</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </fieldset>
+            <fieldset>
+                <legend>Email Configuration</legend>
+                <label for="emailPrimaryProvider">Primary Email Provider</label>
+                <select id="emailPrimaryProvider" name="primaryEmailProvider" required>
+                    <option value="">-- Select Provider --</option>
+                    <option value="google">Google Workspace</option>
+                    <option value="microsoft">Microsoft Office 365</option>
+                    <option value="zoho">Zoho Mail</option>
+                    <option value="mailgun">Mailgun</option>
+                    <option value="sendgrid">SendGrid</option>
+                    <option value="mailchimp">MailChimp</option>
+                    <option value="other">Other</option>
+                </select>
+                <label for="moreMxRecords">Other MX Records</label>
+                <textarea id="moreMxRecords" name="moreMxRecords" rows="3" placeholder="Add additional MX records if any"></textarea>
+                <fieldset>
+                    <legend>Select Email Senders - SPFs</legend>
+                    <label><input type="checkbox" name="spfIncludes" value="Google" /> Google</label>
+                    <label><input type="checkbox" name="spfIncludes" value="Microsoft Office 365" /> Microsoft Office 365</label>
+                    <label><input type="checkbox" name="spfIncludes" value="Mailgun" /> Mailgun</label>
+                    <label><input type="checkbox" name="spfIncludes" value="SendGrid" /> SendGrid</label>
+                    <label><input type="checkbox" name="spfIncludes" value="MailChimp" /> MailChimp</label>
+                    <label><input type="checkbox" name="spfIncludes" value="Zoho" /> Zoho</label>
+                    <label><input type="checkbox" name="spfIncludes" value="MXRoute" /> MXRoute</label>
+                    <label for="emailCustomSpfInclude">Custom SPF Include</label>
+                    <input type="text" id="emailCustomSpfInclude" name="customSpfInclude" placeholder="e.g. include:spf.customdomain.com" />
+                </fieldset>
+                <label for="dmarcRua">DMARC Aggregation (RUA)</label>
+                <input type="email" id="dmarcRua" name="dmarcRua" placeholder="postmaster@example.com" />
+                <label for="dmarcRuf">DMARC Failures (RUF)</label>
+                <input type="email" id="dmarcRuf" name="dmarcRuf" placeholder="forensics@example.com" />
+                <label for="dkimSelector">DKIM Selector</label>
+                <input type="text" id="dkimSelector" name="dkimSelector" placeholder="selector1" />
+                <label for="dkimValue">DKIM Value</label>
+                <textarea id="dkimValue" name="dkimValue" rows="4" placeholder="Paste your DKIM public key value here"></textarea>
+            </fieldset>
+            <fieldset>
+                <legend>Extra DNS Settings</legend>
+                <label for="emailCnameHost">CNAME - Host</label>
+                <input type="text" id="emailCnameHost" name="cnameHost" placeholder="e.g. em123" />
+                <label for="emailCnameValue">CNAME - Points To</label>
+                <input type="text" id="emailCnameValue" name="cnameValue" placeholder="e.g. mailgun.org" />
+            </fieldset>
+            <button type="submit">Submit Email Resolver</button>
+        </form>
+        <form id="form-website" class="resolver-form" action="https://n8n.tomiwa.io/webhook/dns-form" method="post" novalidate role="tabpanel" aria-labelledby="tab-website">
+            <fieldset>
+                <legend>Domain Information</legend>
+                <label for="websiteDomainName">Domain Name</label>
+                <input type="text" id="websiteDomainName" name="domainName" placeholder="example.com" required pattern="^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" />
+                <label for="websiteZoneId">Domain Identifier</label>
+                <input type="text" id="websiteZoneId" name="zoneId" placeholder="Domain Identifier" required />
+                <label for="websiteOldRegistrar">Retrieve data from old registrar?</label>
+                <select id="websiteOldRegistrar" name="oldRegistrar" required>
+                    <option value="">-- Select Option --</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </fieldset>
+            <fieldset>
+                <legend>Website Configuration</legend>
+                <label for="websitePlatform">Website Platform</label>
+                <select id="websitePlatform" name="websitePlatform" required>
+                    <option value="">-- Select Platform --</option>
+                    <option value="wix">Wix</option>
+                    <option value="shopify">Shopify</option>
+                    <option value="squarespace">Squarespace</option>
+                    <option value="wordpress">WordPress</option>
+                    <option value="weebly">Weebly</option>
+                    <option value="bigcommerce">BigCommerce</option>
+                    <option value="other">Other</option>
+                </select>
+                <label for="aRecord">A Record</label>
+                <input type="text" id="aRecord" name="aRecord" placeholder="IP address" />
+            </fieldset>
+            <fieldset>
+                <legend>Extra DNS Settings</legend>
+                <label for="websiteCnameHost">CNAME - Host</label>
+                <input type="text" id="websiteCnameHost" name="cnameHost" placeholder="e.g. www" />
+                <label for="websiteCnameValue">CNAME - Points To</label>
+                <input type="text" id="websiteCnameValue" name="cnameValue" placeholder="e.g. cname.provider.com" />
+            </fieldset>
+            <button type="submit">Submit Website Resolver</button>
+        </form>
+        <form id="form-both" class="resolver-form" action="https://n8n.tomiwa.io/webhook/dns-form" method="post" novalidate style="display:none;" role="tabpanel" aria-labelledby="tab-both">
+            <fieldset>
+                <legend>Domain Information</legend>
+                <label for="bothDomainName">Domain Name</label>
+                <input type="text" id="bothDomainName" name="domainName" placeholder="example.com" required pattern="^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" />
+                <label for="bothZoneId">Domain Identifier</label>
+                <input type="text" id="bothZoneId" name="zoneId" placeholder="Domain Identifier" required />
+                <label for="bothOldRegistrar">Retrieve data from old registrar?</label>
+                <select id="bothOldRegistrar" name="oldRegistrar" required>
+                    <option value="">-- Select Option --</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </fieldset>
+            <fieldset>
+                <legend>Website Configuration</legend>
+                <label for="bothWebsitePlatform">Website Platform</label>
+                <select id="bothWebsitePlatform" name="websitePlatform" required>
+                    <option value="">-- Select Platform --</option>
+                    <option value="wix">Wix</option>
+                    <option value="shopify">Shopify</option>
+                    <option value="squarespace">Squarespace</option>
+                    <option value="wordpress">WordPress</option>
+                    <option value="weebly">Weebly</option>
+                    <option value="bigcommerce">BigCommerce</option>
+                    <option value="other">Other</option>
+                </select>
+                <label for="bothARecord">A Record</label>
+                <input type="text" id="bothARecord" name="aRecord" placeholder="IP address" />
+            </fieldset>
+            <fieldset>
+                <legend>Email Configuration</legend>
+                <label for="bothPrimaryEmailProvider">Primary Email Provider</label>
+                <select id="bothPrimaryEmailProvider" name="primaryEmailProvider" required>
+                    <option value="">-- Select Provider --</option>
+                    <option value="google">Google Workspace</option>
+                    <option value="microsoft">Microsoft Office 365</option>
+                    <option value="zoho">Zoho Mail</option>
+                    <option value="mailgun">Mailgun</option>
+                    <option value="sendgrid">SendGrid</option>
+                    <option value="mailchimp">MailChimp</option>
+                    <option value="mxroute">MXRoute</option>
+                    <option value="other">Other</option>
+                </select>
+                <label for="bothMoreMxRecords">Other MX Records</label>
+                <textarea id="bothMoreMxRecords" name="moreMxRecords" rows="3" placeholder="Add additional MX records if any"></textarea>
+                <fieldset>
+                    <legend>Select Email Senders - SPFs</legend>
+                    <label><input type="checkbox" name="spfIncludes" value="Google" /> Google</label>
+                    <label><input type="checkbox" name="spfIncludes" value="Microsoft Office 365" /> Microsoft Office 365</label>
+                    <label><input type="checkbox" name="spfIncludes" value="Mailgun" /> Mailgun</label>
+                    <label><input type="checkbox" name="spfIncludes" value="SendGrid" /> SendGrid</label>
+                    <label><input type="checkbox" name="spfIncludes" value="MailChimp" /> MailChimp</label>
+                    <label><input type="checkbox" name="spfIncludes" value="Zoho" /> Zoho</label>
+                    <label><input type="checkbox" name="spfIncludes" value="MXRoute" /> MXRoute</label>
+                    <label for="bothCustomSpfInclude">Custom SPF Include</label>
+                    <input type="text" id="bothCustomSpfInclude" name="customSpfInclude" placeholder="e.g. include:spf.customdomain.com" />
+                </fieldset>
+                <label for="bothDmarcRua">DMARC Aggregation (RUA)</label>
+                <input type="email" id="bothDmarcRua" name="dmarcRua" placeholder="postmaster@example.com" />
+                <label for="bothDmarcRuf">DMARC Failures (RUF)</label>
+                <input type="email" id="bothDmarcRuf" name="dmarcRuf" placeholder="forensics@example.com" />
+                <label for="bothDkimSelector">DKIM Selector</label>
+                <input type="text" id="bothDkimSelector" name="dkimSelector" placeholder="selector1" />
+                <label for="bothDkimValue">DKIM Value</label>
+                <textarea id="bothDkimValue" name="dkimValue" rows="4" placeholder="Paste your DKIM public key value here"></textarea>
+            </fieldset>
+            <fieldset>
+                <legend>Extra DNS Settings</legend>
+                <label for="bothCnameHost">CNAME - Host</label>
+                <input type="text" id="bothCnameHost" name="cnameHost" placeholder="e.g. www" />
+                <label for="bothCnameValue">CNAME - Points To</label>
+                <input type="text" id="bothCnameValue" name="cnameValue" placeholder="e.g. cname.provider.com" />
+            </fieldset>
+            <button type="submit">Submit Complete Setup</button>
+        </form>
+        <form id="form-ai" class="resolver-form" action="https://n8n.tomiwa.io/webhook/dns-ai-form" method="post" novalidate style="display:none;" role="tabpanel" aria-labelledby="tab-ai">
+            <fieldset>
+                <legend>Domain Information</legend>
+                <label for="aiDomainName">Domain Name</label>
+                <input type="text" id="aiDomainName" name="domainName" placeholder="example.com" required pattern="^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" />
+                <label for="aiZoneId">Domain Identifier</label>
+                <input type="text" id="aiZoneId" name="zoneId" placeholder="Domain Identifier" required />
+                <label for="aiOldRegistrar">Retrieve data from old registrar?</label>
+                <select id="aiOldRegistrar" name="oldRegistrar" required>
+                    <option value="">-- Select Option --</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </fieldset>
+            <fieldset>
+                <legend>AI-Assisted Instructions</legend>
+                <label for="aiInput">Describe the DNS/Email issue or what you'd like fixed:</label>
+                <textarea id="aiInput" name="aiInput" rows="8" placeholder="e.g. Emails are going to spam; need SPF, DKIM, DMARC set up. Hosted on GoDaddy..."></textarea>
+            </fieldset>
+            <button type="submit">Submit to AI</button>
+        </form>
+        <div id="form-other" class="resolver-form" style="display:none;" role="tabpanel" aria-labelledby="tab-other">
+            <fieldset>
+                <legend>Ongage Image & Tracking Identifier</legend>
+                <label for="otherDomain">Domain Name</label>
+                <input type="text" id="otherDomain" placeholder="example.com" required />
+                <label for="otherInput">Input (DNS Template)</label>
+                <textarea id="otherInput" rows="6" placeholder="Paste template with [Tracking-sub-domain] and [Image-sub-domain]"></textarea>
+                <button type="button" id="otherSubmit">Generate DNS Output</button>
+                <label for="otherOutput">Result</label>
+                <textarea id="otherOutput" rows="6" readonly></textarea>
+                <button type="button" id="copyOtherOutput">Copy Result</button>
+            </fieldset>
+        </div>
+    </div>
+    <footer>
+        © 2025 Yeevu AI. All rights reserved.
+        <p><a href="https://yeevu.com/contact">Contact Us</a> for custom enterprise pricing.</p>
+    </footer>
+    <script type="module" src="./script.js?v=1.0.1"></script> 
+</body>
+</html>

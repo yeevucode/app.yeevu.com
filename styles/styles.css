@@ -1,0 +1,527 @@
+/* Core Variables */
+:root {
+  --primary-color: #0B0B0B; /* Brand Black */
+  --secondary-color: #F5C400; /* Brand Yellow */
+  --text-color-dark: #101010; /* Near Black */
+  --background-light: #FFFFFF; /* Brand White */
+  --background-gray: #F6F6F6; /* Soft Off-White */
+  --accent-hover: #E0B200; /* Darker Yellow for hover */
+  --card-border: #1A1A1A; /* Dark Charcoal Border */
+}
+
+/* Base Styles */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Navigation Bar */
+.site-nav {
+  background: var(--primary-color);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--secondary-color);
+}
+
+.site-nav .nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--secondary-color);
+  font-family: 'EB Garamond', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.site-nav .nav-logo:hover {
+  opacity: 0.9;
+}
+
+.site-nav .nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.site-nav .nav-links a {
+  color: #f5f5f5;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.site-nav .nav-links a:hover {
+  color: var(--secondary-color);
+}
+
+.site-nav .nav-links a.active {
+  color: var(--secondary-color);
+}
+
+.site-nav .nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-nav .nav-user {
+  color: #b0b0b0;
+  font-size: 0.9rem;
+}
+
+.site-nav .nav-auth-link {
+  color: var(--secondary-color);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--secondary-color);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.site-nav .nav-auth-link:hover {
+  background: var(--secondary-color);
+  color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .site-nav {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .site-nav .nav-links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #333;
+  }
+
+  .site-nav .nav-links a {
+    font-size: 0.85rem;
+  }
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: var(--background-light);
+  color: var(--text-color-dark);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.6;
+}
+
+header {
+  background: var(--primary-color);
+  border-bottom: 3px solid var(--secondary-color);
+  padding: 3rem 1.5rem 2rem 1.5rem;
+  text-align: center;
+  color: var(--secondary-color);
+}
+
+header h1 {
+  margin: 0 0 0.75rem 0;
+  font-family: 'EB Garamond', serif;
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+header p {
+  margin: 0 auto;
+  max-width: 800px;
+  font-size: 1.2rem;
+  color: #f5f5f5;
+  font-weight: 300;
+}
+
+.container {
+  max-width: 800px;
+  margin: 4rem auto;
+  padding: 2rem;
+  background: var(--background-gray);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+}
+
+h2 {
+  text-align: center;
+  color: var(--primary-color);
+  font-family: 'EB Garamond', serif;
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+}
+
+/* Resolver Selector (Tabs) */
+.resolver-selector {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: nowrap;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 0.35rem;
+  background: var(--background-light);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.mode-btn {
+  padding: 0.6rem 1.1rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  min-width: auto;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease, color 0.3s ease;
+  color: var(--text-color-dark);
+  font-size: 0.95rem;
+  text-transform: none;
+  position: relative;
+  outline: none;
+  scroll-snap-align: center;
+}
+
+.mode-btn:hover {
+  background: var(--background-gray);
+  color: var(--secondary-color);
+  transform: translateY(-2px);
+}
+
+.mode-btn:focus {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+.mode-btn.active {
+  background: var(--secondary-color);
+  color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.mode-btn.active::after {
+  display: none;
+}
+
+.mode-btn .tab-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--primary-color);
+  color: var(--background-light);
+  vertical-align: middle;
+}
+
+.mode-btn.active .tab-badge {
+  background: var(--primary-color);
+  color: var(--background-light);
+}
+
+.tooltip-premium::after {
+  content: 'AI Auto-Fix: Let our AI resolve issues instantly. Upgrade now!';
+  display: none;
+  position: absolute;
+  background: var(--primary-color);
+  color: var(--background-light);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.tooltip-premium:hover::after {
+  display: block;
+}
+
+/* Form Styles */
+.resolver-form {
+  display: none;
+}
+
+.resolver-form[style*="block"] {
+  display: block;
+}
+
+fieldset {
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  background: var(--background-light);
+}
+
+legend {
+  font-family: 'EB Garamond', serif;
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 1.4rem;
+  padding: 0 0.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-color-dark);
+  font-size: 1rem;
+}
+
+input[type="text"],
+input[type="email"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1.2rem;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: var(--background-light);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--secondary-color);
+  outline: none;
+  box-shadow: 0 0 5px rgba(245, 196, 0, 0.3);
+}
+
+textarea {
+  resize: vertical;
+}
+
+input[type="checkbox"] {
+  margin-right: 0.8rem;
+  vertical-align: middle;
+  accent-color: var(--secondary-color);
+}
+
+button[type="submit"],
+#form-other button {
+  display: block;
+  width: 100%;
+  background: var(--secondary-color);
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  margin-top: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+button[type="submit"]:hover,
+button[type="submit"]:focus,
+#form-other button:hover,
+#form-other button:focus {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+  outline: none;
+}
+
+/* Paywall and Login Prompt */
+.login-prompt {
+  display: block; /* Confirmed as 'block' */
+  visibility: visible; /* Ensure it's not hidden by visibility */
+  text-align: center;
+  padding: 20px;
+  background: var(--background-gray);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  position: relative; /* Needed for z-index to work */
+  z-index: 10; /* Ensure it's above other default elements */
+}
+
+.login-prompt h2 {
+  font-family: 'EB Garamond', serif;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.login-prompt p {
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 20px;
+}
+
+.login-prompt button {
+  background: var(--secondary-color);
+  color: var(--primary-color);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  position: relative; /* Needed for z-index to work on buttons */
+  z-index: 11; /* Ensure buttons are above the prompt itself */
+}
+
+/* Temporary Debugging Styles - REMOVE LATER */
+#loginBtn.debug-found {
+  border: 3px solid red !important; /* Forces a red border if found by JS */
+}
+/* End Temporary Debugging Styles */
+
+
+.paywall-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000; /* Higher z-index to cover content */
+  justify-content: center;
+  align-items: center;
+}
+
+.paywall-content {
+  background: var(--background-light);
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 400px;
+}
+
+.paywall-content h2 {
+  font-family: 'EB Garamond', serif;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.paywall-content p {
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 20px;
+}
+
+.paywall-content button {
+  background: var(--secondary-color);
+  color: var(--primary-color);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+/* Shared Styles for Partner/Client Sections */
+.showcase-section {
+    text-align: center;
+    margin-top: 60px;
+    padding: 40px 20px;
+    background-color: var(--background-gray);
+    border-top: 1px solid var(--card-border);
+    border-bottom: 1px solid var(--card-border);
+}
+
+.showcase-section h2 {
+    margin-bottom: 30px;
+}
+
+.showcase-logos {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    margin-top: 30px;
+}
+
+.showcase-logo {
+    max-width: 150px; /* Adjust as needed */
+    height: auto;
+    filter: grayscale(100%); /* Makes logos black and white */
+    opacity: 0.7;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.showcase-logo:hover {
+    filter: grayscale(0%); /* Full color on hover */
+    opacity: 1;
+}
+
+/* Footer */
+footer {
+  background: var(--primary-color);
+  border-top: 3px solid var(--secondary-color);
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 1rem;
+  color: var(--background-light);
+  margin-top: auto;
+}
+
+footer a {
+  color: var(--secondary-color);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: 1.5rem;
+    margin: 3rem auto;
+  }
+  header h1 {
+    font-size: 2.2rem;
+  }
+  header p {
+    font-size: 1.1rem;
+  }
+  h2 {
+    font-size: 2rem;
+  }
+  .resolver-selector {
+    gap: 0.35rem;
+    flex-direction: row;
+    align-items: center;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 0.35rem;
+  }
+  .mode-btn {
+    font-size: 0.9rem;
+    padding: 0.55rem 1rem;
+    min-width: auto;
+    max-width: none;
+  }
+}

@@ -1,0 +1,413 @@
+/* Core Variables */
+:root {
+  --primary-color: #D4AF37; /* Luxurious Gold */
+  --secondary-color: #0A1A3A; /* Deep Navy */
+  --text-color-dark: #2D2D2D; /* Soft Black */
+  --background-light: #FFFFFF; /* Crisp White */
+  --background-gray: #F8F8F8; /* Subtle Off-White */
+  --accent-hover: #B8972E; /* Darker Gold for hover */
+  --card-border: #2A2A2A; /* Dark Charcoal Border */
+}
+
+/* Base Styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: var(--background-light);
+  color: var(--text-color-dark);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.6;
+}
+
+header {
+  background: var(--secondary-color);
+  border-bottom: 3px solid var(--primary-color);
+  padding: 3rem 1.5rem 2rem 1.5rem;
+  text-align: center;
+  color: var(--primary-color);
+}
+
+header h1 {
+  margin: 0 0 0.75rem 0;
+  font-family: 'EB Garamond', serif;
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+header p {
+  margin: 0 auto;
+  max-width: 800px;
+  font-size: 1.2rem;
+  color: var(--background-gray);
+  font-weight: 300;
+}
+
+.container {
+  max-width: 800px;
+  margin: 4rem auto;
+  padding: 2rem;
+  background: var(--background-gray);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+}
+
+h2 {
+  text-align: center;
+  color: var(--secondary-color);
+  font-family: 'EB Garamond', serif;
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+}
+
+/* Resolver Selector (Tabs) */
+.resolver-selector {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--card-border);
+  padding-bottom: 0.5rem;
+}
+
+.mode-btn {
+  padding: 0.8rem 1.8rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  background: var(--background-light);
+  border: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  min-width: 140px;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease, color 0.3s ease;
+  color: var(--text-color-dark);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  position: relative;
+  outline: none;
+}
+
+.mode-btn:hover {
+  background: var(--background-gray);
+  color: var(--secondary-color);
+  transform: translateY(-2px);
+}
+
+.mode-btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.mode-btn.active {
+  background: var(--primary-color);
+  color: var(--secondary-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.mode-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary-color);
+}
+
+.tooltip-premium::after {
+  content: 'AI Auto-Fix: Let our AI resolve issues instantly. Upgrade now!';
+  display: none;
+  position: absolute;
+  background: var(--secondary-color);
+  color: var(--background-light);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.tooltip-premium:hover::after {
+  display: block;
+}
+
+/* Form Styles */
+.resolver-form {
+  display: none;
+}
+
+.resolver-form[style*="block"] {
+  display: block;
+}
+
+fieldset {
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  background: var(--background-light);
+}
+
+legend {
+  font-family: 'EB Garamond', serif;
+  font-weight: 600;
+  color: var(--secondary-color);
+  font-size: 1.4rem;
+  padding: 0 0.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-color-dark);
+  font-size: 1rem;
+}
+
+input[type="text"],
+input[type="email"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1.2rem;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: var(--background-light);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 5px rgba(212, 175, 55, 0.3);
+}
+
+textarea {
+  resize: vertical;
+}
+
+input[type="checkbox"] {
+  margin-right: 0.8rem;
+  vertical-align: middle;
+  accent-color: var(--primary-color);
+}
+
+button[type="submit"],
+#form-other button {
+  display: block;
+  width: 100%;
+  background: var(--primary-color);
+  color: var(--secondary-color);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  margin-top: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+button[type="submit"]:hover,
+button[type="submit"]:focus,
+#form-other button:hover,
+#form-other button:focus {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+  outline: none;
+}
+
+/* Paywall and Login Prompt */
+.login-prompt {
+  display: block;
+  text-align: center;
+  padding: 20px;
+  background: var(--background-gray);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.login-prompt h2 {
+  font-family: 'EB Garamond', serif;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.login-prompt p {
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 20px;
+}
+
+.login-prompt button {
+  background: var(--primary-color);
+  color: var(--secondary-color);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+.paywall-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.paywall-content {
+  background: var(--background-light);
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 400px;
+}
+
+.paywall-content h2 {
+  font-family: 'EB Garamond', serif;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.paywall-content p {
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 20px;
+}
+
+.paywall-content button {
+  background: var(--primary-color);
+  color: var(--secondary-color);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+/* Footer */
+footer {
+  background: var(--secondary-color);
+  border-top: 3px solid var(--primary-color);
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 1rem;
+  color: var(--background-light);
+  margin-top: auto;
+}
+
+footer a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: 1.5rem;
+    margin: 3rem auto;
+  }
+  header h1 {
+    font-size: 2.2rem;
+  }
+  header p {
+    font-size: 1.1rem;
+  }
+  h2 {
+    font-size: 2rem;
+  }
+  .resolver-selector {
+    gap: 0.8rem;
+    flex-direction: column;
+    align-items: center;
+    border-bottom: none;
+  }
+  .mode-btn {
+    font-size: 1rem;
+    padding: 0.7rem 1.5rem;
+    min-width: 100%;
+    max-width: 200px;
+    border-radius: 8px;
+  }
+  .mode-btn.active::after {
+    display: none;
+  }
+  fieldset {
+    padding: 1.5rem;
+  }
+  legend {
+    font-size: 1.2rem;
+  }
+  input[type="text"],
+  input[type="email"],
+  select,
+  textarea {
+    font-size: 0.95rem;
+  }
+  button[type="submit"],
+  #form-other button {
+    font-size: 1rem;
+    padding: 0.9rem;
+  }
+  .login-prompt button,
+  .paywall-content button {
+    padding: 8px 16px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 500px) {
+  header h1 {
+    font-size: 1.8rem;
+  }
+  .container {
+    padding: 1rem;
+  }
+  .resolver-selector {
+    gap: 0.6rem;
+  }
+  .mode-btn {
+    font-size: 0.95rem;
+    padding: 0.6rem 1.2rem;
+  }
+  fieldset {
+    padding: 1.2rem;
+  }
+  legend {
+    font-size: 1.1rem;
+  }
+}
