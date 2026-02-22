@@ -8,8 +8,10 @@ import { checkMtaSts } from '../../../../lib/checks/mta-sts';
 import { checkTlsRpt } from '../../../../lib/checks/tls-rpt';
 import { checkBimiRecord, checkBimiVmc } from '../../../../lib/checks/bimi';
 import { checkBlacklist } from '../../../../lib/checks/blacklist';
+import { checkCompliance } from '../../../../lib/checks/compliance';
 import { CheckResult } from '../../../../lib/types/scanner';
 import { isDomainBlocked, getBlockedDomainError } from '../../../../lib/utils/blocklist';
+import { isValidDomain } from '../../../../lib/utils/validate';
 
 const checkFunctions: Record<string, (domain: string) => Promise<CheckResult>> = {
   mx: checkMx,
@@ -22,12 +24,8 @@ const checkFunctions: Record<string, (domain: string) => Promise<CheckResult>> =
   bimi_record: checkBimiRecord,
   bimi_vmc: checkBimiVmc,
   blacklist: checkBlacklist,
+  compliance: checkCompliance,
 };
-
-function isValidDomain(domain: string): boolean {
-  const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-  return domainRegex.test(domain);
-}
 
 export async function GET(
   request: NextRequest,

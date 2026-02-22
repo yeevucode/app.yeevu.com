@@ -3,6 +3,8 @@ import { checkSpf } from '../../../../lib/checks/spf';
 import { checkDkim } from '../../../../lib/checks/dkim';
 import { checkDmarc } from '../../../../lib/checks/dmarc';
 import { CheckResult } from '../../../../lib/types/scanner';
+import { isValidDomain } from '../../../../lib/utils/validate';
+import { generateScanId as makeScanId } from '../../../../lib/utils/id';
 
 // Widget endpoint - DNS-only checks for embeddable widgets
 // No SMTP connectivity checks to avoid timeout issues in browser context
@@ -17,15 +19,6 @@ export interface WidgetScanResponse {
     dkim: CheckResult;
     dmarc: CheckResult;
   };
-}
-
-function generateScanId(): string {
-  return `wscan_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-function isValidDomain(domain: string): boolean {
-  const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-  return domainRegex.test(domain);
 }
 
 function createErrorResult(error: Error | unknown): CheckResult {
@@ -68,7 +61,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const scanId = generateScanId();
+    const scanId = makeScanId('wscan');
 
     // Run DNS-only checks in parallel (no SMTP/MX connectivity)
     const [spf, dkim, dmarc] = await Promise.all([
@@ -117,7 +110,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const scanId = generateScanId();
+    const scanId = makeScanId('wscan');
 
     // Run DNS-only checks in parallel
     const [spf, dkim, dmarc] = await Promise.all([

@@ -7,6 +7,7 @@
 
 import { promises as dns } from 'dns';
 import { CheckResult } from '../types/scanner';
+import type { ReputationTier } from '../constants/scoring';
 
 interface RblEntry {
   name: string;
@@ -164,12 +165,10 @@ export async function checkBlacklist(domain: string): Promise<CheckResult> {
       };
     }
 
-    // Check each IP against blacklists (sequentially to avoid rate limiting)
-    const ipResults: IpCheckResult[] = [];
-    for (const { ip, hostname } of mailServerIps) {
-      const result = await checkIpBlacklists(ip, hostname);
-      ipResults.push(result);
-    }
+    // Check each IP in parallel — worst case drops from N×30s to 30s
+    const ipResults = await Promise.all(
+      mailServerIps.map(({ ip, hostname }) => checkIpBlacklists(ip, hostname))
+    );
 
     // Analyze results
     const totalListings = ipResults.reduce((sum, r) => sum + r.listedCount, 0);
@@ -199,14 +198,21 @@ export async function checkBlacklist(domain: string): Promise<CheckResult> {
     score -= Math.min(minorListings.length * 5, 30);
     score = Math.max(0, score);
 
-    // Determine status
+    // Determine status and reputation tier
     let status: 'pass' | 'warn' | 'fail';
-    if (majorListings.length > 0) {
+    let reputation_tier: ReputationTier;
+    if (majorListings.length >= 2) {
       status = 'fail';
+      reputation_tier = 'multi_major';
+    } else if (majorListings.length === 1) {
+      status = 'fail';
+      reputation_tier = 'major';
     } else if (minorListings.length > 0) {
       status = 'warn';
+      reputation_tier = 'minor_only';
     } else {
       status = 'pass';
+      reputation_tier = 'clean';
     }
 
     // Build recommendations
@@ -247,6 +253,7 @@ export async function checkBlacklist(domain: string): Promise<CheckResult> {
       status,
       score,
       details: {
+        reputation_tier,
         ips_checked: mailServerIps.length,
         blacklists_checked: totalChecked,
         total_listings: totalListings,
@@ -273,14 +280,16 @@ export async function checkBlacklist(domain: string): Promise<CheckResult> {
 
   } catch (error) {
     return {
-      status: 'warn',
-      score: 50,
+      status: 'fail',
+      score: 0,
       details: {
+        check_error: true,
+        reputation_tier: 'unknown' as ReputationTier,
         error: String(error),
-        note: 'Could not complete blacklist check',
+        note: 'Blacklist check unavailable',
       },
       recommendations: [
-        'Blacklist check could not be completed',
+        'Blacklist check could not be completed — no score penalty applied',
         'Try again later or check manually at https://rbl-check.org/',
       ],
     };

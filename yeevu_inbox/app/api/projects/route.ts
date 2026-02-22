@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
 import { getStorage, ProjectScanResult } from '../../../lib/storage';
+import { isValidDomain } from '../../../lib/utils/validate';
 
 // GET /api/projects - List all projects for the user
 export async function GET() {
@@ -57,9 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Basic domain validation
-    const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-    if (!domainRegex.test(domain)) {
+    if (!isValidDomain(domain)) {
       return NextResponse.json(
         { error: 'Invalid domain format' },
         { status: 400 }

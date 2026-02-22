@@ -29,27 +29,31 @@ export async function checkDkim(domain: string, selectors?: string[]): Promise<C
         const dkimRecord = txtRecords.flat().join('');
         
         if (dkimRecord.includes('v=DKIM1')) {
-          // Parse DKIM record for key information
+          const keyAlgo = dkimRecord.includes('k=ed25519') ? 'Ed25519' : 'RSA';
+
           const keyMatch = dkimRecord.match(/p=([^;]+)/);
           const keyString = keyMatch ? keyMatch[1].trim() : '';
-          
-          // Estimate key strength from base64 length (rough heuristic)
-          // 1024-bit RSA ≈ 140 chars, 2048-bit ≈ 370 chars in base64
-          let keyBits = 0;
-          if (keyString.length < 250) {
+
+          // Ed25519 keys are ~44 chars in base64 — the RSA length heuristic does not
+          // apply. Ed25519 is strength-equivalent to 3000+ bit RSA; never flag as weak.
+          // For RSA: 1024-bit ≈ 140 chars, 2048-bit ≈ 370 chars in base64.
+          let keyBits: number;
+          if (keyAlgo === 'Ed25519') {
+            keyBits = 256; // sentinel: Ed25519 native strength, not an RSA bit count
+          } else if (keyString.length < 250) {
             keyBits = 1024;
           } else if (keyString.length < 400) {
             keyBits = 2048;
           } else {
             keyBits = 4096;
           }
-          
+
           foundKeys.push({
             selector,
             found: true,
             keyBits,
             version: 'DKIM1',
-            keyAlgo: dkimRecord.includes('k=ed25519') ? 'Ed25519' : 'RSA'
+            keyAlgo,
           });
         }
       } catch {
@@ -81,20 +85,21 @@ export async function checkDkim(domain: string, selectors?: string[]): Promise<C
       };
     }
     
-    // Warn if using weak 1024-bit keys
-    const weak1024Keys = validKeys.filter(k => k.keyBits === 1024);
+    // Ed25519 keys use keyBits=256 sentinel — never weak regardless of bit count.
+    // Only RSA keys with keyBits === 1024 are considered weak.
+    const weak1024Keys = validKeys.filter(k => k.keyAlgo !== 'Ed25519' && k.keyBits === 1024);
     let score = validKeys.length >= 1 ? 90 : 70;
     let status: 'pass' | 'warn' | 'fail' = 'pass';
     const recommendations: string[] = [];
-    
+
     if (weak1024Keys.length > 0) {
       score -= 20;
       status = 'warn';
       recommendations.push(
-        `WARNING: Found ${weak1024Keys.length} selector(s) with keys less than 2048-bit (weak encryption).`
+        `WARNING: Found ${weak1024Keys.length} selector(s) with 1024-bit RSA keys (weak encryption).`
       );
       recommendations.push(
-        'Keys less than 2048-bit are considered insecure. Upgrade to 2048-bit RSA or Ed25519 keys.'
+        '1024-bit RSA keys are considered insecure. Upgrade to 2048-bit RSA or Ed25519 keys.'
       );
     }
     

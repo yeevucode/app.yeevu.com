@@ -8,11 +8,7 @@ import {
   COOKIE_NAME,
   FREE_SCANS_PER_DAY,
 } from '../../../../lib/utils/usage-limit';
-
-function isValidDomain(domain: string): boolean {
-  const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-  return domainRegex.test(domain);
-}
+import { isValidDomain } from '../../../../lib/utils/validate';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;

@@ -14,6 +14,7 @@ interface SpfLookupResult {
   domain: string;
   record: string;
   lookups: string[];
+  hadError?: boolean;
 }
 
 /**
@@ -85,10 +86,9 @@ async function countRecursiveLookups(
   domain: string,
   visited: Set<string> = new Set(),
   depth: number = 0
-): Promise<{ total: number; chain: SpfLookupResult[] }> {
-  // Prevent infinite loops and excessive depth
+): Promise<{ total: number; chain: SpfLookupResult[]; brokenIncludes: string[] }> {
   if (visited.has(domain) || depth > 5) {
-    return { total: 0, chain: [] };
+    return { total: 0, chain: [], brokenIncludes: [] };
   }
   visited.add(domain);
 
@@ -104,12 +104,12 @@ async function countRecursiveLookups(
       }
     }
   } catch {
-    // Could not resolve SPF for this domain
-    return { total: 1, chain: [] }; // Count the failed lookup attempt
+    // DNS lookup consumed a slot (RFC 7208 §5.2), counts as 1
+    return { total: 1, chain: [{ domain, record: '', lookups: [], hadError: true }], brokenIncludes: [domain] };
   }
 
   if (!spfRecord) {
-    return { total: 0, chain: [] };
+    return { total: 0, chain: [], brokenIncludes: [] };
   }
 
   const lookupMechanisms = countLookupMechanisms(spfRecord);
@@ -123,15 +123,16 @@ async function countRecursiveLookups(
 
   let totalLookups = lookupMechanisms.length;
   const chain: SpfLookupResult[] = [result];
+  const brokenIncludes: string[] = [];
 
-  // Recursively count lookups in included SPF records
   for (const includeDomain of includes) {
     const subResult = await countRecursiveLookups(includeDomain, visited, depth + 1);
     totalLookups += subResult.total;
     chain.push(...subResult.chain);
+    brokenIncludes.push(...subResult.brokenIncludes);
   }
 
-  return { total: totalLookups, chain };
+  return { total: totalLookups, chain, brokenIncludes };
 }
 
 export async function checkSpf(domain: string): Promise<CheckResult> {
@@ -180,7 +181,7 @@ export async function checkSpf(domain: string): Promise<CheckResult> {
     const spfRecord = spfRecords[0];
 
     // Count recursive lookups
-    const { total: lookupCount, chain } = await countRecursiveLookups(domain);
+    const { total: lookupCount, chain, brokenIncludes } = await countRecursiveLookups(domain);
 
     // Get mechanisms from main record
     const tokens = spfRecord.split(/\s+/);
@@ -222,6 +223,14 @@ export async function checkSpf(domain: string): Promise<CheckResult> {
       score += 10; // Bonus for strict policy
     }
 
+    if (brokenIncludes.length > 0) {
+      for (const broken of brokenIncludes) {
+        recommendations.push(
+          `include: target \`${broken}\` does not resolve — this will cause a permerror on strict receivers`
+        );
+      }
+    }
+
     return {
       status,
       score: Math.max(0, Math.min(100, score)),
@@ -231,12 +240,14 @@ export async function checkSpf(domain: string): Promise<CheckResult> {
         lookup_count: lookupCount,
         direct_lookups: lookupMechanisms.length,
         includes: includes,
+        broken_includes: brokenIncludes,
         policy_qualifier: finalPolicy,
         all_mechanisms: tokens,
         lookup_chain: chain.map(c => ({
           domain: c.domain,
           lookups: c.lookups.length,
           mechanisms: c.lookups,
+          hadError: c.hadError,
         })),
       },
       recommendations,

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckResult } from '../../lib/types/scanner';
+import { CHECK_WEIGHTS, REPUTATION_MULTIPLIERS, ReputationTier } from '../../lib/constants/scoring';
 
 // Score Ring Component (Dark Theme - Segmented bars style)
 function ScoreRingDark({ score, status }: { score: number | null; status: string }) {
@@ -145,7 +146,7 @@ function getDetails(result: CheckResult | null | undefined): Details {
   return (result?.details || {}) as Details;
 }
 
-type CheckType = 'mx' | 'spf' | 'dkim' | 'dmarc' | 'smtp' | 'blacklist' | 'mta_sts' | 'tls_rpt' | 'bimi_record' | 'bimi_vmc';
+type CheckType = 'mx' | 'spf' | 'dkim' | 'dmarc' | 'smtp' | 'blacklist' | 'compliance' | 'mta_sts' | 'tls_rpt' | 'bimi_record' | 'bimi_vmc';
 
 interface CheckState {
   result: CheckResult | null;
@@ -161,15 +162,7 @@ const initialCheckState: CheckState = {
   error: null,
 };
 
-const CHECK_WEIGHTS: Record<string, number> = {
-  dmarc: 25,
-  spf: 20,
-  dkim: 20,
-  mx: 20,
-  smtp: 15,
-};
-
-const ALL_CHECKS: CheckType[] = ['dmarc', 'spf', 'dkim', 'mx', 'smtp', 'blacklist', 'mta_sts', 'tls_rpt', 'bimi_record', 'bimi_vmc'];
+const ALL_CHECKS: CheckType[] = ['dmarc', 'spf', 'dkim', 'mx', 'smtp', 'blacklist', 'compliance', 'mta_sts', 'tls_rpt', 'bimi_record', 'bimi_vmc'];
 const API_BASE = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
 const apiPath = (path: string) => `${API_BASE}${path}`;
 
@@ -381,15 +374,22 @@ function CheckCard({
                       <span className="detail-label">Total Keys</span>
                       <span className="detail-value">{d.keys_found}</span>
                     </div>
-                    {d.found_keys?.map((key: { selector: string; keyBits?: number; keyAlgo?: string }) => (
-                      <div className="detail-row" key={key.selector}>
-                        <span className="detail-label">Selector: {key.selector}</span>
-                        <span className="detail-value" style={{ color: key.keyBits && key.keyBits < 2048 ? 'var(--warning)' : 'inherit' }}>
-                          {key.keyBits}-bit {key.keyAlgo}
-                          {key.keyBits && key.keyBits < 2048 && ' (weak - upgrade to 2048-bit)'}
-                        </span>
-                      </div>
-                    ))}
+                    {d.found_keys?.map((key: { selector: string; keyBits?: number; keyAlgo?: string }) => {
+                      const isEd25519 = key.keyAlgo === 'Ed25519';
+                      const isWeak = !isEd25519 && key.keyBits !== undefined && key.keyBits < 2048;
+                      const label = isEd25519
+                        ? `Ed25519 (≡ 3000+ bit RSA)`
+                        : `${key.keyBits}-bit ${key.keyAlgo ?? 'RSA'}`;
+                      return (
+                        <div className="detail-row" key={key.selector}>
+                          <span className="detail-label">Selector: {key.selector}</span>
+                          <span className="detail-value" style={{ color: isWeak ? 'var(--warning)' : 'inherit' }}>
+                            {label}
+                            {isWeak && ' (weak - upgrade to 2048-bit)'}
+                          </span>
+                        </div>
+                      );
+                    })}
                     {d.selectors_probed && (
                       <div className="detail-row">
                         <span className="detail-label">Selectors Checked</span>
@@ -500,44 +500,49 @@ function CheckCard({
 
           {/* Blacklist Check Details */}
           {checkType === 'blacklist' && d && (
-            <>
-              <div className="detail-row">
-                <span className="detail-label">IPs Checked</span>
-                <span className="detail-value">
-                  {d.ips_checked ?? 0}
-                </span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Blacklists Checked</span>
-                <span className="detail-value">
-                  {d.blacklists_checked ?? 0}
-                </span>
-              </div>
+            d.check_error ? (
               <div className="detail-row">
                 <span className="detail-label">Status</span>
-                <span className="detail-value">
-                  {d.all_clear
-                    ? '✓ All clear - No blacklist listings found'
-                    : `⚠ Found ${d.total_listings} listing(s)`}
+                <span className="detail-value" style={{ color: 'var(--gray-500)' }}>
+                  Check unavailable — no penalty applied
                 </span>
               </div>
-              {d.major_listings > 0 && (
+            ) : (
+              <>
                 <div className="detail-row">
-                  <span className="detail-label">Major Listings</span>
-                  <span className="detail-value" style={{ color: 'var(--danger)' }}>
-                    {d.major_listings} (critical)
+                  <span className="detail-label">IPs Checked</span>
+                  <span className="detail-value">{d.ips_checked ?? 0}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Blacklists Checked</span>
+                  <span className="detail-value">{d.blacklists_checked ?? 0}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Status</span>
+                  <span className="detail-value">
+                    {d.all_clear
+                      ? '✓ All clear - No blacklist listings found'
+                      : `⚠ Found ${d.total_listings} listing(s)`}
                   </span>
                 </div>
-              )}
-              {d.minor_listings > 0 && (
-                <div className="detail-row">
-                  <span className="detail-label">Minor Listings</span>
-                  <span className="detail-value" style={{ color: 'var(--warning)' }}>
-                    {d.minor_listings}
-                  </span>
-                </div>
-              )}
-            </>
+                {d.major_listings > 0 && (
+                  <div className="detail-row">
+                    <span className="detail-label">Major Listings</span>
+                    <span className="detail-value" style={{ color: 'var(--danger)' }}>
+                      {d.major_listings} (critical)
+                    </span>
+                  </div>
+                )}
+                {d.minor_listings > 0 && (
+                  <div className="detail-row">
+                    <span className="detail-label">Minor Listings</span>
+                    <span className="detail-value" style={{ color: 'var(--warning)' }}>
+                      {d.minor_listings}
+                    </span>
+                  </div>
+                )}
+              </>
+            )
           )}
 
           {/* MTA-STS Check Details */}
@@ -664,6 +669,28 @@ function CheckCard({
             </>
           )}
 
+          {/* Compliance Check Details */}
+          {checkType === 'compliance' && d && (
+            <>
+              <div className="detail-row">
+                <span className="detail-label">Privacy Page</span>
+                <span className="detail-value">{d.privacyFound ? '✓ Found' : '✗ Not found'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Terms Page</span>
+                <span className="detail-value">{d.termsFound ? '✓ Found' : '✗ Not found'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Consent Signal</span>
+                <span className="detail-value">{d.consentFound ? '✓ Detected' : '✗ Not detected'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Subscription Form</span>
+                <span className="detail-value">{d.subscriptionFound ? '✓ Detected' : 'Not detected'}</span>
+              </div>
+            </>
+          )}
+
           {result.error && !result.details?.error && (
             <div className="detail-row">
               <span className="detail-label">Error</span>
@@ -714,8 +741,10 @@ function ResultsContent() {
 
   const [scanId] = useState(() => `scan_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 9)}`);
 
-  // Calculate overall score from weighted checks
-  const calculateScore = useCallback(() => {
+  // Calculate overall score from weighted checks then apply reputation multiplier.
+  // Blacklist is NOT in CHECK_WEIGHTS — it applies as a post-calculation multiplier.
+  // See wave ordering comment for why the late drop is intentional UX.
+  const calculateScore = useCallback((): { configScore: number | null; finalScore: number | null; multiplier: number; reputationTier: ReputationTier | null } => {
     let totalWeight = 0;
     let weightedScore = 0;
 
@@ -727,11 +756,24 @@ function ResultsContent() {
       }
     }
 
-    if (totalWeight === 0) return null;
-    return Math.round(weightedScore / totalWeight);
+    if (totalWeight === 0) return { configScore: null, finalScore: null, multiplier: 1.0, reputationTier: null };
+
+    const configScore = Math.round(weightedScore / totalWeight);
+
+    const blacklistResult = checks.blacklist?.result;
+    if (!blacklistResult || blacklistResult.details?.check_error) {
+      // Blacklist not yet loaded or errored — show raw config score, no penalty
+      return { configScore, finalScore: configScore, multiplier: 1.0, reputationTier: null };
+    }
+
+    const tier = (blacklistResult.details?.reputation_tier as ReputationTier) ?? 'unknown';
+    const multiplier = REPUTATION_MULTIPLIERS[tier] ?? 1.0;
+    const finalScore = Math.round(configScore * multiplier);
+
+    return { configScore, finalScore, multiplier, reputationTier: tier };
   }, [checks]);
 
-  const score = calculateScore();
+  const { configScore, finalScore: score, multiplier: reputationMultiplier, reputationTier } = calculateScore();
 
   // Check if user is authenticated and if domain is already saved
   useEffect(() => {
@@ -904,13 +946,22 @@ function ResultsContent() {
       // localStorage not available
     }
 
-    // Fetch checks in priority order
-    // Core checks first (they affect the score)
+    // INTENTIONAL WAVE ORDERING — do not reorder without understanding the UX.
+    //
+    // Wave 1 (core checks): runs immediately to populate the score ring progressively.
+    // Watching the score build as checks complete is deliberate gamification — it keeps
+    // the user engaged and anchors them to a high configuration score before blacklist runs.
+    //
+    // Wave 2 (advanced checks): non-scoring supplementary checks, fired with a brief delay
+    // so core checks get priority bandwidth.
+    //
+    // Wave 3 (blacklist + compliance): runs last deliberately. When a blacklist listing is
+    // found, the score drops visibly after the user has already seen a high config score.
+    // This late drop communicates the severity of a reputation listing far more effectively
+    // than a static warning would. Do not move blacklist to Wave 1.
     const corePriority: CheckType[] = ['dmarc', 'spf', 'dkim', 'mx', 'smtp'];
-    // Then advanced checks
     const advancedPriority: CheckType[] = ['mta_sts', 'tls_rpt', 'bimi_record', 'bimi_vmc'];
-    // Blacklist last (can be slow)
-    const lastPriority: CheckType[] = ['blacklist'];
+    const lastPriority: CheckType[] = ['blacklist', 'compliance'];
 
     // Start core checks immediately
     corePriority.forEach(check => fetchCheck(check));
@@ -920,7 +971,7 @@ function ResultsContent() {
       advancedPriority.forEach(check => fetchCheck(check));
     }, 100);
 
-    // Start blacklist check last
+    // Start blacklist + compliance last (slow checks, blacklist drop is intentional)
     setTimeout(() => {
       lastPriority.forEach(check => fetchCheck(check));
     }, 200);
@@ -1165,6 +1216,23 @@ function ResultsContent() {
           </div>
         </div>
 
+        {/* Reputation Impact Banner — shown when blacklist multiplier drops the score */}
+        {reputationMultiplier < 1.0 && configScore !== null && score !== null && (
+          <div style={{
+            margin: '1rem 0',
+            padding: '0.875rem 1.25rem',
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            borderRadius: '8px',
+            color: '#fca5a5',
+            fontSize: '0.9rem',
+          }}>
+            <strong style={{ color: '#f87171' }}>Reputation Penalty Applied</strong>
+            {' '}— Configuration score was {configScore}, reduced to {score} due to a blacklist listing.
+            See the Blacklist Check below for details.
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="action-buttons-row">
           <a href="#details" className="action-btn-dark primary">See Details</a>
@@ -1276,6 +1344,14 @@ function ResultsContent() {
       <div className="check-cards">
         <CheckCard title="BIMI Record" icon="🖼️" result={checks.bimi_record.result} checkType="bimi_record" loading={checks.bimi_record.loading} />
         <CheckCard title="BIMI VMC Certificate" icon="🏅" result={checks.bimi_vmc.result} checkType="bimi_vmc" loading={checks.bimi_vmc.loading} />
+      </div>
+
+      {/* Compliance */}
+      <div className="section-divider">
+        <h2><span className="section-icon">📋</span> Compliance</h2>
+      </div>
+      <div className="check-cards">
+        <CheckCard title="Compliance" icon="✅" result={checks.compliance.result} checkType="compliance" loading={checks.compliance.loading} />
       </div>
 
       {/* Consultation CTA */}

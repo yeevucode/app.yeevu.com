@@ -2,104 +2,82 @@
 
 **Email Deliverability Checker** — Know your email will land in the inbox.
 
-A comprehensive email deliverability scanner that checks MX records, SPF, DKIM, DMARC, and SMTP connectivity to give domain owners actionable insights on their email infrastructure health.
+A comprehensive email deliverability scanner deployed at `app.yeevu.com/deliverability/`. It performs 11 distinct checks against a domain's DNS configuration, scores the results using a two-stage weighted formula, and presents them progressively in a browser UI. Authenticated users can save domains as projects for later rescanning.
+
+**Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Cloudflare Workers via `@opennextjs/cloudflare` · Auth0 v3 · Cloudflare KV
 
 ---
 
 ## Features
 
-- **MX Record Validation** – Verify MX records, redundancy, and proper A/AAAA resolution
-- **SPF Analysis** – Check SPF syntax, lookup counts, and qualification policies
-- **DKIM Detection** – Find DKIM public keys and validate key strength (1024/2048-bit)
-- **DMARC Policy Review** – Inspect DMARC policy, rua/ruf addresses, and alignment modes
-- **SMTP Connectivity** – Test SMTP connect, EHLO capabilities, STARTTLS support, TLS certificate validation
-- **Detailed Reports** – Per-check results with actionable remediation steps
-- **Score & Recommendations** – Deterministic scoring formula with transparent logic
-- **Domain Verification** – Require ownership verification before advanced checks
-- **API & Embed Support** – REST API for integrations + CORS-enabled widget endpoint
-- **Privacy-First** – No unsolicited outbound emails; DNS-only by default
+- **11 Checks** — MX, SPF, DKIM, DMARC, SMTP, MTA-STS, TLS-RPT, BIMI (record + VMC), Blacklist, Compliance
+- **Two-Stage Scoring** — Weighted configuration score (DMARC 30 / SPF 25 / DKIM 25 / MX 10 / SMTP 10) × reputation multiplier from blacklist result
+- **Progressive UI** — Results stream in as checks complete; score ring updates live
+- **Reputation Multiplier** — Blacklist listing drops the final score visibly after config score is established (intentional UX)
+- **Anonymous Scans** — 3 free scans per day via cookie-based usage tracking (no account required)
+- **Auth0 Login** — Authenticated users get unlimited scans and project saving via Cloudflare KV
+- **Embeddable Widget** — CORS-enabled `/api/widget/scan` endpoint for third-party embeds
+- **Domain Blocklist** — Configurable via `BLOCKED_DOMAINS` env var with wildcard support
 
 ---
 
 ## Quick Start
 
-### Installation
+### Local Development
 
 ```bash
+cp .env.example .env.local
+# Fill in AUTH0_* values — leave AUTH0_BASE_URL as http://localhost:3000
 npm install
-```
-
-### Development
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Run Tests
+### Type Check
 
 ```bash
-npm test
+npm run type-check
+```
+
+### Lint
+
+```bash
+npm run lint
 ```
 
 ---
 
-## API Endpoints
+## Deployment (Cloudflare Workers)
 
-### POST /api/scan
-
-Trigger a full deliverability scan on a domain.
-
-**Request:**
-```json
-{
-  "domain": "example.com",
-  "checks": ["mx", "spf", "dkim", "dmarc", "smtp"],
-  "options": {
-    "dkim_selectors": ["default", "mail"],
-    "smtp_timeout": 10000
-  }
-}
+```bash
+# Build and deploy in one step
+npm run deploy
 ```
 
-**Response:**
-```json
-{
-  "scan_id": "scan_abc123",
-  "domain": "example.com",
-  "status": "pending",
-  "created_at": "2025-12-17T10:00:00Z"
-}
+This runs `opennextjs-cloudflare build && opennextjs-cloudflare deploy`.
+
+**Required Cloudflare secrets** (set via `wrangler secret put`):
+
+```
+AUTH0_SECRET
+AUTH0_CLIENT_ID
+AUTH0_CLIENT_SECRET
+AUTH0_ISSUER_BASE_URL
 ```
 
-### GET /api/scan/{id}
+**`wrangler.toml` vars:**
 
-Poll scan results by ID.
-
-**Response:**
-```json
-{
-  "scan_id": "scan_abc123",
-  "domain": "example.com",
-  "status": "completed",
-  "score": 85,
-  "timestamp": "2025-12-17T10:00:15Z",
-  "checks": {
-    "mx": {...},
-    "spf": {...},
-    "dkim": {...},
-    "dmarc": {...},
-    "smtp": {...}
-  },
-  "issues": [...],
-  "recommendations": [...]
-}
+```toml
+NEXT_PUBLIC_BASE_PATH = "/deliverability"
+AUTH0_BASE_URL = "https://app.yeevu.com/deliverability"
 ```
 
-### POST /api/widget/scan (CORS-enabled)
+**`.env.production`** (build-time, inlines `NEXT_PUBLIC_BASE_PATH` into client bundle):
 
-Public endpoint for embeddable widgets (DNS-only checks by default).
+```env
+NEXT_PUBLIC_BASE_PATH=/deliverability
+```
 
 ---
 
@@ -107,212 +85,194 @@ Public endpoint for embeddable widgets (DNS-only checks by default).
 
 ```
 yeevu_inbox/
-├── api/                   # API route definitions
-├── docs/                  # Documentation
-│   ├── checks/           # Per-check guides (mx, spf, dkim, dmarc, smtp)
-│   ├── scoring.md        # Scoring formula & weights
-│   ├── api.md            # API reference
-│   └── architecture.md   # System design
+├── app/
+│   ├── page.tsx                    # Home — domain input form
+│   ├── results/page.tsx            # Results — progressive check display + scoring
+│   ├── dashboard/page.tsx          # Saved projects dashboard
+│   ├── layout.tsx
+│   ├── globals.css
+│   └── api/
+│       ├── scan/
+│       │   ├── route.ts            # POST /api/scan — full parallel scan
+│       │   ├── [check]/route.ts    # GET /api/scan/<check> — individual check
+│       │   ├── preflight/route.ts  # GET /api/scan/preflight — auth + usage gate
+│       │   └── blacklist/route.ts  # GET /api/scan/blacklist — standalone blacklist
+│       ├── projects/
+│       │   ├── route.ts            # GET/POST /api/projects
+│       │   └── [domain]/route.ts   # DELETE /api/projects/:domain
+│       ├── widget/scan/route.ts    # POST /api/widget/scan — CORS-enabled embed
+│       └── auth/[...auth0]/route.ts
 ├── lib/
-│   ├── checks/           # Check implementations (mx.ts, spf.ts, etc.)
-│   ├── scanner/
-│   │   ├── index.ts      # Main scanner orchestrator
-│   │   ├── fetcher.ts    # DNS/SMTP probing utilities
-│   │   └── scorer.ts     # Scoring logic
-│   ├── types/            # TypeScript definitions
-│   └── utils/            # Shared utilities
-├── test/                 # Unit & integration tests
-├── app/                  # Next.js app (UI pages)
-├── components/           # React components
-├── public/               # Static assets
-├── package.json
+│   ├── checks/
+│   │   ├── mx.ts
+│   │   ├── spf.ts
+│   │   ├── dkim.ts
+│   │   ├── dmarc.ts
+│   │   ├── smtp.ts
+│   │   ├── mta-sts.ts
+│   │   ├── tls-rpt.ts
+│   │   ├── bimi.ts
+│   │   ├── blacklist.ts
+│   │   └── compliance.ts
+│   ├── constants/
+│   │   └── scoring.ts              # CHECK_WEIGHTS, REPUTATION_MULTIPLIERS (single source of truth)
+│   ├── scanner/index.ts            # Orchestrator for full parallel scans
+│   ├── storage/
+│   │   ├── index.ts                # Singleton storage factory
+│   │   ├── kv.ts                   # Cloudflare KV adapter
+│   │   ├── file.ts                 # Local file adapter (dev)
+│   │   └── interface.ts
+│   ├── types/scanner.ts
+│   └── utils/
+│       ├── validate.ts             # isValidDomain()
+│       ├── id.ts                   # generateScanId()
+│       ├── blocklist.ts            # isDomainBlocked(), patternToRegex()
+│       └── usage-limit.ts          # Cookie-based anonymous usage tracking
+├── .env.example
+├── next.config.mjs
+├── open-next.config.ts
+├── wrangler.toml
 ├── tsconfig.json
-├── wrangler.toml         # Cloudflare Workers config
-└── README.md
+└── package.json
 ```
-
----
-
-## Key Checks
-
-### MX (Mail Exchange)
-- Presence and validity of MX records
-- Resolution to valid A/AAAA addresses
-- Redundancy and priority ordering
-- Detects misconfigured CNAMEs
-
-### SPF (Sender Policy Framework)
-- Record presence and syntax validation
-- DNS lookup count (must be ≤10 per RFC)
-- Qualification policy (-all, ~all, ?all)
-- Includes and redirect detection
-
-### DKIM (DomainKeys Identified Mail)
-- Public key discovery in DNS
-- Key strength validation (1024/2048-bit minimum)
-- Selector enumeration (configurable)
-- Guidance for test-signed message verification
-
-### DMARC (Domain-based Message Authentication, Reporting and Conformance)
-- Policy presence and syntax
-- Alignment mode configuration (strict/relaxed)
-- Reporting addresses (rua/ruf)
-- Policy recommendations (none → quarantine → reject path)
-
-### SMTP
-- TCP connectivity on port 25/587/465
-- Banner and EHLO capability inspection
-- STARTTLS negotiation and TLS certificate validation
-- Servername (SNI) matching validation
-- No intrusive probes (VRFY/RCPT) by default
 
 ---
 
 ## Scoring Formula
 
-Total **100 points** distributed:
+### Stage 1 — Configuration Score
 
-- **MX Records: 20 points** – Presence, redundancy, resolution
-- **SPF: 20 points** – Presence, policy strength, lookup efficiency
-- **DKIM: 20 points** – Key discovery, key strength
-- **DMARC: 25 points** – Policy presence, alignment, reporting
-- **SMTP: 15 points** – Connectivity, STARTTLS, certificate validity
+Weighted average of 5 core checks (defined in `lib/constants/scoring.ts`):
 
-Penalties apply for missing records, weak policies, excessive lookups, and TLS issues.
-Bonuses for strict policies (`p=reject`) and redundant MX records.
+| Check | Weight | Rationale |
+|-------|--------|-----------|
+| DMARC | 30% | Capstone — hardest to configure correctly |
+| SPF   | 25% | Equal foundation |
+| DKIM  | 25% | Equal foundation |
+| MX    | 10% | Infrastructure verification |
+| SMTP  | 10% | Infrastructure verification |
 
-See [docs/scoring.md](docs/scoring.md) for detailed formula and examples.
+Score normalises correctly during progressive loading: denominator is the sum of weights for *completed* checks only.
+
+### Stage 2 — Reputation Multiplier
+
+Applied after the configuration score based on the blacklist result:
+
+| Tier | Multiplier | Condition |
+|------|-----------|-----------|
+| `clean` | 1.0 | No listings |
+| `minor_only` | 0.85 | Listed on minor blocklists only |
+| `major` | 0.5 | Listed on one major blocklist |
+| `multi_major` | 0.25 | Listed on 2+ major blocklists |
+| `unknown` | 1.0 | Check errored — no penalty for uncertainty |
+
+`finalScore = Math.round(configScore × multiplier)`
+
+A red banner is shown when `multiplier < 1.0`:
+> "Reputation Penalty Applied — Configuration score was X, reduced to Y due to a blacklist listing."
 
 ---
 
-## Configuration
+## API Reference
 
-Set environment variables in `.env.local`:
+### `GET /api/scan/preflight?domain=<domain>`
+
+Usage and blocklist gate. Returns:
+- `{ allowed: true, authenticated: true, unlimited: true }` — logged-in user
+- `{ allowed: true, authenticated: false, remaining: N, limit: 3 }` — anonymous, within limit
+- `403 { error, limitReached: true }` — anonymous, limit reached
+- `403 { error, blocked: true }` — domain is blocked
+
+### `GET /api/scan/<check>?domain=<domain>`
+
+Run a single check. `<check>` is one of:
+`mx` · `spf` · `dkim` · `dmarc` · `smtp` · `mta_sts` · `tls_rpt` · `bimi_record` · `bimi_vmc` · `blacklist` · `compliance`
+
+Returns:
+```json
+{
+  "check": "spf",
+  "domain": "example.com",
+  "timestamp": "2026-01-01T00:00:00.000Z",
+  "result": { "status": "pass", "score": 90, "details": {}, "recommendations": [] }
+}
+```
+
+### `POST /api/scan`
+
+Full parallel scan. Returns all check results and the post-multiplier `score`.
+
+### `GET /api/projects` · `POST /api/projects` · `DELETE /api/projects/:domain`
+
+Project management (requires Auth0 session). Projects stored in Cloudflare KV under `user_projects:<base64url(userId)>`.
+
+### `POST /api/widget/scan` (CORS-enabled)
+
+Embeddable widget endpoint. Returns scan results for third-party domains.
+
+---
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local` and configure:
 
 ```env
-# Scanner defaults
-SCANNER_SMTP_TIMEOUT=10000
-SCANNER_DNS_TIMEOUT=5000
-SCANNER_DKIM_SELECTORS=default,mail,selector1
+# Auth0 (required)
+AUTH0_SECRET=<long-random-string>
+AUTH0_ISSUER_BASE_URL=https://auth.yeevu.com
+AUTH0_CLIENT_ID=<client-id>
+AUTH0_CLIENT_SECRET=<client-secret>
 
-# Rate limiting
-RATE_LIMIT_PER_MINUTE=10
-RATE_LIMIT_PER_HOUR=100
+# Local dev
+AUTH0_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_BASE_PATH=
 
-# Domain verification (optional)
-REQUIRE_DOMAIN_VERIFICATION=true
-
-# Logging
-LOG_LEVEL=info
+# Domain blocklist (optional)
+# Supports exact, *.prefix, and suffix.* patterns
+BLOCKED_DOMAINS=malicious.com,*.spam.net
 ```
 
 ---
 
-## Safety & Privacy
+## Check Details
 
-- **Domain Verification Required** – Before advanced checks, verify domain ownership via DNS TXT or file upload
-- **DNS-Only by Default** – No outbound mail or mailbox probes without explicit consent
-- **No Data Retention** – Reports deleted after 30 days (configurable)
-- **Audit Logs** – All scan requests logged for compliance
-- **Rate Limited** – Per-user and per-API-key rate limits prevent abuse
+### MX
+- Resolves MX records; parallel IPv4+IPv6 A/AAAA resolution per host
+- RFC fallback: A/AAAA used if no MX present (RFC 5321)
+- Scores redundancy: 2+ MX → 100, 1 MX → 85, none → 0
 
----
+### SPF
+- Recursive include/redirect follower with cycle detection (Set-based)
+- Counts DNS lookups against RFC 7208 §4.6.4 limit of 10
+- Reports broken includes (failed DNS resolution) as separate recommendations
+- `-all` strict qualifier earns a +10 bonus
 
-## Development
+### DKIM
+- Probes 11 common selectors: `default`, `mail`, `selector1`, `selector2`, `s1`, `s2`, `k1`, `k2`, `google`, `dkim`, `x`
+- Ed25519 keys correctly identified (never false-flagged as weak 1024-bit RSA)
+- UI label: `Ed25519 (≡ 3000+ bit RSA)`
+- RSA key strength estimated from base64 length: <250 chars → 1024-bit, <400 → 2048-bit, else → 4096-bit
 
-### Adding a New Check
+### DMARC
+- Full tag parser using `indexOf('=')` — handles base64 values that contain `=`
+- `pct=` value reduces the effective policy score proportionally when `pct < 100`
+- Checks `rua`/`ruf` reporting addresses, alignment modes, and policy strength
 
-1. Create `lib/checks/newcheck.ts`:
-```typescript
-import { CheckRunner } from '../types';
+### SMTP
+- Tests TCP on port 25; EHLO capability inspection; STARTTLS negotiation; TLS certificate validation
 
-export const checkNewCheck: CheckRunner = async (domain, options) => {
-  return {
-    status: 'pass' | 'warn' | 'fail',
-    details: {...},
-    raw: {...},
-    recommendations: [...]
-  };
-};
-```
+### MTA-STS / TLS-RPT / BIMI
+- Standard DNS TXT lookups; BIMI VMC check shares a single DNS fetch with the record check
 
-2. Import and register in `lib/scanner/index.ts`
-3. Add tests in `test/checks/newcheck.test.ts`
-4. Document in `docs/checks/newcheck.md`
+### Blacklist
+- Checks mail server IPs in parallel against DNS-based blocklists
+- API failure returns `check_error: true` and `reputation_tier: 'unknown'` (multiplier 1.0 — no penalty for uncertainty)
 
----
-
-## Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run tests with coverage
-npm test -- --coverage
-
-# Run specific test file
-npm test -- checks/mx.test.ts
-
-# Watch mode
-npm test -- --watch
-```
-
----
-
-## Deployment
-
-### Cloudflare Workers (Production)
-
-```bash
-npm run build
-npx wrangler deploy
-```
-
-### Local / Docker
-
-```bash
-npm run build
-npm run start
-```
-
----
-
-## Roadmap
-
-- [ ] Bounce handling and diagnostics
-- [ ] Catch-all detection heuristics
-- [ ] IP reputation lookup (Spamhaus, etc.)
-- [ ] Email marketing provider detection
-- [ ] Scheduled recurring scans
-- [ ] Webhooks and API integrations
-- [ ] PDF/email report delivery
-- [ ] Multi-user dashboard and org management
-- [ ] BIMI (Brand Indicators for Message Identification)
-- [ ] Custom check plugins
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) (coming soon).
+### Compliance
+- Fetches homepage and common policy paths in parallel; checks for privacy policy, unsubscribe links, consent checkboxes, and GDPR/CAN-SPAM indicators
 
 ---
 
 ## License
 
-MIT
-
----
-
-## Support
-
-For issues, feature requests, or security concerns:
-- **GitHub Issues**: [yeevu/yeevu-inbox/issues](https://github.com/yeevu/yeevu-inbox/issues)
-- **Email**: support@yeevu.app
-- **Docs**: [docs.yeevu-inbox.app](https://docs.yeevu-inbox.app)
-
----
-
-**Built by [Yeevu](https://yeevuapp.com)** | Improving email deliverability for all domains
-
+MIT — see [LICENSE](LICENSE)

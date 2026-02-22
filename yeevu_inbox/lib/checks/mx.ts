@@ -50,25 +50,20 @@ export async function checkMx(domain: string): Promise<CheckResult> {
     // Sort by priority
     mxRecords.sort((a, b) => a.priority - b.priority);
     
-    // Validate each MX target resolves properly
-    const results = [];
-    for (const mx of mxRecords) {
-      const addrs: string[] = [];
-      try {
-        const a4 = await dns.resolve4(mx.exchange).catch(() => []);
-        const a6 = await dns.resolve6(mx.exchange).catch(() => []);
-        addrs.push(...a4, ...a6);
-      } catch (e) {
-        // Resolution failed
-      }
-      
-      results.push({
-        exchange: mx.exchange,
-        priority: mx.priority,
-        addrs,
-        resolves: addrs.length > 0
-      });
-    }
+    // Validate each MX target resolves — all in parallel
+    const results = await Promise.all(
+      mxRecords.map(async (mx) => {
+        const a4 = await dns.resolve4(mx.exchange).catch(() => [] as string[]);
+        const a6 = await dns.resolve6(mx.exchange).catch(() => [] as string[]);
+        const addrs = [...a4, ...a6];
+        return {
+          exchange: mx.exchange,
+          priority: mx.priority,
+          addrs,
+          resolves: addrs.length > 0,
+        };
+      })
+    );
     
     // Score based on redundancy and validity
     const validCount = results.filter(r => r.resolves).length;

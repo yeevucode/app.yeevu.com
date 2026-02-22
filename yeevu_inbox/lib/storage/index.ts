@@ -21,7 +21,11 @@ function isCloudflareWorker(): boolean {
     process.env.NODE_ENV === 'production';
 }
 
-// Singleton storage instance
+// Singleton storage instance.
+// Safe in Cloudflare Workers: each Worker isolate is single-threaded and processes
+// one request at a time, so there is no shared-state race condition.
+// Would need rethinking in a Node.js multi-threaded context (e.g. worker_threads).
+// Use resetStorage() in tests to clear this between test cases.
 let storageInstance: IProjectStorage | null = null;
 
 /**

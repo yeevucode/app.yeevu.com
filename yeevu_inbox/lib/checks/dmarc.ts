@@ -36,15 +36,16 @@ export async function checkDmarc(domain: string): Promise<CheckResult> {
       };
     }
     
-    // Parse DMARC tags
+    // Parse DMARC tags — use indexOf to handle values that contain '=' (e.g. rua mailto URIs)
     const tags = dmarcRecord.split(/;\s*/);
     const parsed: Record<string, string> = {};
-    
+
     for (const tag of tags) {
-      const [key, value] = tag.split('=');
-      if (key && value) {
-        parsed[key.trim()] = value.trim();
-      }
+      const eqIdx = tag.indexOf('=');
+      if (eqIdx === -1) continue;
+      const key = tag.slice(0, eqIdx).trim();
+      const value = tag.slice(eqIdx + 1).trim();
+      if (key) parsed[key] = value;
     }
     
     // Check policy
@@ -61,33 +62,51 @@ export async function checkDmarc(domain: string): Promise<CheckResult> {
     const aspf = parsed['aspf'] || 'r';
     const alignment = adkim === 's' && aspf === 's' ? 'strict' : 'relaxed';
     
+    // Factor in pct= (percentage of messages the policy applies to)
+    const pct = Math.min(100, Math.max(0, parseInt(parsed['pct'] ?? '100', 10) || 100));
+
     // Calculate score
     let score = 50 + policyScore;
     if (!hasRua) score -= 15;
     if (alignment !== 'strict') score -= 10;
-    
+
+    // Reduce score proportionally when pct < 100 for enforcing policies
+    // p=none is already monitoring-only so no additional penalty
+    if (pct < 100 && (policy === 'quarantine' || policy === 'reject')) {
+      const effectiveFraction = pct / 100;
+      // Scale the policy contribution down proportionally
+      const policyContribution = policyScore * (1 - effectiveFraction);
+      score -= Math.round(policyContribution);
+    }
+
     const status = policy === 'none' ? 'warn' : policy === 'reject' ? 'pass' : 'warn';
-    
+
     const recommendations: string[] = [];
-    
+
     if (policy === 'none') {
       recommendations.push(
         'Policy is p=none (monitoring only). After reviewing reports, upgrade to p=quarantine'
       );
     }
-    
+
+    if (pct < 100 && (policy === 'quarantine' || policy === 'reject')) {
+      recommendations.push(
+        `DMARC policy applies to only ${pct}% of messages — increase pct to 100 for full enforcement`
+      );
+    }
+
     if (!hasRua) {
       recommendations.push(
         'Add rua tag to receive aggregate reports: rua=mailto:dmarc@yourdomain.com'
       );
     }
-    
+
     if (alignment !== 'strict') {
       recommendations.push(
         'Consider strict alignment for better SPF/DKIM enforcement: adkim=s; aspf=s'
       );
     }
-    
+
     return {
       status,
       score: Math.max(0, Math.min(100, score)),
@@ -100,7 +119,7 @@ export async function checkDmarc(domain: string): Promise<CheckResult> {
         has_ruf: hasRuf,
         dkim_alignment: adkim,
         spf_alignment: aspf,
-        pct: parsed['pct'] || '100'
+        pct,
       },
       recommendations
     };

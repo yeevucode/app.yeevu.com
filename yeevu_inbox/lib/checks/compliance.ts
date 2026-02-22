@@ -23,7 +23,7 @@ async function fetchText(url: string) {
     if (!res || !res.ok) return { status: res ? res.status : 0, text: '' };
     const text = await res.text();
     return { status: res.status, text };
-  } catch (e) {
+  } catch {
     return { status: 0, text: '' };
   }
 }
@@ -37,11 +37,9 @@ function looksLikeConsent(html: string) {
 }
 
 function hasConsentCheckbox(html: string) {
-  // basic heuristic: input type=checkbox near consent words
   const checkboxRegex = /<input[^>]+type=["']?checkbox["']?[^>]*>/i;
   if (!checkboxRegex.test(html)) return false;
-  if (looksLikeConsent(html)) return true;
-  return true; // checkbox present -> likely consent
+  return looksLikeConsent(html);
 }
 
 function hasSubscriptionForm(html: string) {
@@ -57,32 +55,37 @@ export async function checkCompliance(domain: string): Promise<CheckResult> {
     const httpsBase = `https://${domain}`;
     const httpBase = `http://${domain}`;
 
-    const privacyResults: Array<{ path: string; httpsStatus: number; httpStatus: number; consentCheckbox: boolean; consentMessage: boolean; subscriptionForm: boolean }> = [];
-    const termsResults: Array<{ path: string; httpsStatus: number; httpStatus: number; subscriptionForm: boolean }> = [];
-
-    // Check privacy paths
-    for (const p of PRIVACY_PATHS) {
-      const httpsUrl = `${httpsBase}${p}`;
-      const httpUrl = `${httpBase}${p}`;
-      const httpsRes = await fetchText(httpsUrl);
-      const httpRes = await fetchText(httpUrl);
-
-      const consentCheckbox = httpsRes.text ? hasConsentCheckbox(httpsRes.text) : (httpRes.text ? hasConsentCheckbox(httpRes.text) : false);
-      const consentMessage = httpsRes.text ? looksLikeConsent(httpsRes.text) : (httpRes.text ? looksLikeConsent(httpRes.text) : false);
-      const subscriptionForm = httpsRes.text ? hasSubscriptionForm(httpsRes.text) : (httpRes.text ? hasSubscriptionForm(httpRes.text) : false);
-
-      privacyResults.push({ path: p, httpsStatus: httpsRes.status, httpStatus: httpRes.status, consentCheckbox, consentMessage, subscriptionForm });
-    }
-
-    // Check terms paths
-    for (const p of TERMS_PATHS) {
-      const httpsUrl = `${httpsBase}${p}`;
-      const httpUrl = `${httpBase}${p}`;
-      const httpsRes = await fetchText(httpsUrl);
-      const httpRes = await fetchText(httpUrl);
-      const subscriptionForm = httpsRes.text ? hasSubscriptionForm(httpsRes.text) : (httpRes.text ? hasSubscriptionForm(httpRes.text) : false);
-      termsResults.push({ path: p, httpsStatus: httpsRes.status, httpStatus: httpRes.status, subscriptionForm });
-    }
+    // Fetch all paths in parallel — reduces worst case from 14×8s to 1×8s
+    const [privacyResults, termsResults] = await Promise.all([
+      Promise.all(PRIVACY_PATHS.map(async (p) => {
+        const [httpsRes, httpRes] = await Promise.all([
+          fetchText(`${httpsBase}${p}`),
+          fetchText(`${httpBase}${p}`),
+        ]);
+        const html = httpsRes.text || httpRes.text;
+        return {
+          path: p,
+          httpsStatus: httpsRes.status,
+          httpStatus: httpRes.status,
+          consentCheckbox: html ? hasConsentCheckbox(html) : false,
+          consentMessage: html ? looksLikeConsent(html) : false,
+          subscriptionForm: html ? hasSubscriptionForm(html) : false,
+        };
+      })),
+      Promise.all(TERMS_PATHS.map(async (p) => {
+        const [httpsRes, httpRes] = await Promise.all([
+          fetchText(`${httpsBase}${p}`),
+          fetchText(`${httpBase}${p}`),
+        ]);
+        const html = httpsRes.text || httpRes.text;
+        return {
+          path: p,
+          httpsStatus: httpsRes.status,
+          httpStatus: httpRes.status,
+          subscriptionForm: html ? hasSubscriptionForm(html) : false,
+        };
+      })),
+    ]);
 
     const privacyFound = privacyResults.some(r => r.httpsStatus === 200 || r.httpStatus === 200);
     const termsFound = termsResults.some(r => r.httpsStatus === 200 || r.httpStatus === 200);

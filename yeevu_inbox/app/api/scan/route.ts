@@ -7,8 +7,12 @@ import { checkSmtp } from '../../../lib/checks/smtp';
 import { checkMtaSts } from '../../../lib/checks/mta-sts';
 import { checkTlsRpt } from '../../../lib/checks/tls-rpt';
 import { checkBimiRecord, checkBimiVmc } from '../../../lib/checks/bimi';
+import { checkBlacklist } from '../../../lib/checks/blacklist';
 import { CheckResult } from '../../../lib/types/scanner';
 import { isDomainBlocked, getBlockedDomainError } from '../../../lib/utils/blocklist';
+import { CHECK_WEIGHTS, REPUTATION_MULTIPLIERS, ReputationTier } from '../../../lib/constants/scoring';
+import { isValidDomain } from '../../../lib/utils/validate';
+import { generateScanId } from '../../../lib/utils/id';
 
 export interface ScanResponse {
   scan_id: string;
@@ -22,6 +26,7 @@ export interface ScanResponse {
     dkim: CheckResult;
     dmarc: CheckResult;
     smtp: CheckResult;
+    blacklist?: CheckResult;
     mta_sts?: CheckResult;
     tls_rpt?: CheckResult;
     bimi_record?: CheckResult;
@@ -37,14 +42,6 @@ export interface ScanResponse {
   recommendations: string[];
 }
 
-function generateScanId(): string {
-  return `scan_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 9)}`;
-}
-
-function isValidDomain(domain: string): boolean {
-  const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-  return domainRegex.test(domain);
-}
 
 function createErrorResult(error: Error | unknown): CheckResult {
   return {
@@ -70,7 +67,7 @@ async function runScan(domain: string, options?: { dkim_selectors?: string[] }):
   const scanId = generateScanId();
 
   // Run all checks in parallel
-  const [mx, spf, dkim, dmarc, smtp, mta_sts, tls_rpt, bimi_record, bimi_vmc] = await Promise.all([
+  const [mx, spf, dkim, dmarc, smtp, mta_sts, tls_rpt, bimi_record, bimi_vmc, blacklist] = await Promise.all([
     checkMx(domain).catch(createErrorResult),
     checkSpf(domain).catch(createErrorResult),
     checkDkim(domain, options?.dkim_selectors).catch(createErrorResult),
@@ -80,18 +77,24 @@ async function runScan(domain: string, options?: { dkim_selectors?: string[] }):
     checkTlsRpt(domain).catch(createWarnErrorResult),
     checkBimiRecord(domain).catch(createWarnErrorResult),
     checkBimiVmc(domain).catch(createWarnErrorResult),
+    checkBlacklist(domain).catch(createWarnErrorResult),
   ]);
 
-  // Calculate overall score using weighted average
-  // MX: 20%, SPF: 20%, DKIM: 20%, DMARC: 25%, SMTP: 15%
-  const weights = { mx: 20, spf: 20, dkim: 20, dmarc: 25, smtp: 15 };
-  const overallScore = Math.round(
-    (mx.score * weights.mx +
-     spf.score * weights.spf +
-     dkim.score * weights.dkim +
-     dmarc.score * weights.dmarc +
-     smtp.score * weights.smtp) / 100
+  // Calculate config score using shared weights
+  const configScore = Math.round(
+    (mx.score * CHECK_WEIGHTS.mx +
+     spf.score * CHECK_WEIGHTS.spf +
+     dkim.score * CHECK_WEIGHTS.dkim +
+     dmarc.score * CHECK_WEIGHTS.dmarc +
+     smtp.score * CHECK_WEIGHTS.smtp) / 100
   );
+
+  // Apply reputation multiplier from blacklist result
+  const reputationTier = (blacklist.details?.check_error
+    ? 'unknown'
+    : (blacklist.details?.reputation_tier ?? 'unknown')) as ReputationTier;
+  const multiplier = REPUTATION_MULTIPLIERS[reputationTier] ?? 1.0;
+  const overallScore = Math.round(configScore * multiplier);
 
   // Collect issues
   const issues: ScanResponse['issues'] = [];
@@ -253,6 +256,7 @@ async function runScan(domain: string, options?: { dkim_selectors?: string[] }):
     ...(mta_sts.recommendations || []),
     ...(tls_rpt.recommendations || []),
     ...(bimi_record.recommendations || []),
+    ...(blacklist.recommendations || []),
   ];
 
   return {
@@ -261,7 +265,7 @@ async function runScan(domain: string, options?: { dkim_selectors?: string[] }):
     timestamp: new Date().toISOString(),
     status: 'completed',
     score: overallScore,
-    checks: { mx, spf, dkim, dmarc, smtp, mta_sts, tls_rpt, bimi_record, bimi_vmc },
+    checks: { mx, spf, dkim, dmarc, smtp, mta_sts, tls_rpt, bimi_record, bimi_vmc, blacklist },
     issues,
     recommendations,
   };

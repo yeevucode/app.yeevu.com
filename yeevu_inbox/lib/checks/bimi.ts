@@ -35,9 +35,14 @@ async function fetchHead(url: string) {
 }
 
 /**
- * Fetch and parse BIMI record from DNS
+ * Fetch and parse BIMI record from DNS.
+ * Exported so callers that run both BIMI checks can share one DNS lookup
+ * via checkBimiAll(). Since /api/scan/[check] calls each check in a separate
+ * HTTP request from the client, the duplicate DNS lookup when hitting bimi_record
+ * and bimi_vmc individually is architectural and cannot be fully avoided without
+ * combining the endpoints. Accept the trade-off; document it here.
  */
-async function getBimiRecord(domain: string, selector = 'default'): Promise<BimiParsed | null> {
+export async function getBimiRecord(domain: string, selector = 'default'): Promise<BimiParsed | null> {
   const bimiDomain = `${selector}._bimi.${domain}`;
 
   try {
@@ -71,11 +76,12 @@ async function getBimiRecord(domain: string, selector = 'default'): Promise<Bimi
 
 /**
  * Check 1: BIMI Record Implementation
- * Validates the presence and format of the BIMI DNS record
+ * Validates the presence and format of the BIMI DNS record.
+ * Pass a pre-fetched record to avoid a second DNS lookup (used by checkBimiAll).
  */
-export async function checkBimiRecord(domain: string): Promise<CheckResult> {
+export async function checkBimiRecord(domain: string, prefetched?: BimiParsed | null): Promise<CheckResult> {
   try {
-    const parsed = await getBimiRecord(domain);
+    const parsed = prefetched !== undefined ? prefetched : await getBimiRecord(domain);
 
     if (!parsed) {
       return {
@@ -153,11 +159,12 @@ export async function checkBimiRecord(domain: string): Promise<CheckResult> {
 
 /**
  * Check 2: BIMI VMC Certificate
- * Validates the presence of a Verified Mark Certificate (VMC)
+ * Validates the presence of a Verified Mark Certificate (VMC).
+ * Pass a pre-fetched record to avoid a second DNS lookup (used by checkBimiAll).
  */
-export async function checkBimiVmc(domain: string): Promise<CheckResult> {
+export async function checkBimiVmc(domain: string, prefetched?: BimiParsed | null): Promise<CheckResult> {
   try {
-    const parsed = await getBimiRecord(domain);
+    const parsed = prefetched !== undefined ? prefetched : await getBimiRecord(domain);
 
     if (!parsed) {
       return {
@@ -283,14 +290,24 @@ export async function checkBimiVmc(domain: string): Promise<CheckResult> {
 }
 
 /**
+ * Combined BIMI check — fetches DNS record once and passes to both sub-checks.
+ * Use this when both results are needed in the same request context.
+ */
+export async function checkBimiAll(domain: string): Promise<{ record: CheckResult; vmc: CheckResult }> {
+  const bimiRecord = await getBimiRecord(domain);
+  const [recordResult, vmcResult] = await Promise.all([
+    checkBimiRecord(domain, bimiRecord),
+    checkBimiVmc(domain, bimiRecord),
+  ]);
+  return { record: recordResult, vmc: vmcResult };
+}
+
+/**
  * Combined BIMI check (for backward compatibility)
  * Returns combined score from both record and VMC checks
  */
 export async function checkBimi(domain: string): Promise<CheckResult> {
-  const [recordResult, vmcResult] = await Promise.all([
-    checkBimiRecord(domain),
-    checkBimiVmc(domain),
-  ]);
+  const { record: recordResult, vmc: vmcResult } = await checkBimiAll(domain);
 
   // Combined score: 60% record, 40% VMC
   const combinedScore = Math.round(recordResult.score * 0.6 + vmcResult.score * 0.4);
