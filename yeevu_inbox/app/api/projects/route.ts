@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
-import { getStorage, ProjectScanResult } from '../../../lib/storage';
+import { getStorage, ProjectScanResult, ScanHistoryEntry } from '../../../lib/storage';
 import { isValidDomain } from '../../../lib/utils/validate';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { getDB, insertProjectSave } from '../../../lib/utils/analytics';
+import { generateScanId } from '../../../lib/utils/id';
 
 // GET /api/projects - List all projects for the user
 export async function GET() {
@@ -47,9 +50,9 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.sub;
 
-    const body = await request.json() as { domain?: string; scanResult?: ProjectScanResult };
+    const body = await request.json() as { domain?: string; scanResult?: ProjectScanResult; historyEntry?: ScanHistoryEntry };
 
-    const { domain, scanResult } = body;
+    const { domain, scanResult, historyEntry } = body;
 
     if (!domain) {
       return NextResponse.json(
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     const storage = await getStorage();
-    const result = await storage.addProject(userId, domain, scanResult);
+    const result = await storage.addProject(userId, domain, scanResult, historyEntry);
 
     if (!result.success) {
       return NextResponse.json(
@@ -74,6 +77,21 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Analytics: log project save
+    try {
+      const { env, ctx } = await getCloudflareContext();
+      const db = getDB(env as Record<string, unknown>);
+      if (db) {
+        ctx.waitUntil(insertProjectSave(db, {
+          id: generateScanId('save'),
+          ts: Date.now(),
+          user_id: userId,
+          user_email: session.user.email ?? null,
+          domain,
+        }).catch(() => {}));
+      }
+    } catch { /* local dev */ }
 
     // Get updated limits
     const limits = await storage.getProjectLimits(userId);

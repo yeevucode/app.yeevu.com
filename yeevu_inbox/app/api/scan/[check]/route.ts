@@ -12,6 +12,22 @@ import { checkCompliance } from '../../../../lib/checks/compliance';
 import { CheckResult } from '../../../../lib/types/scanner';
 import { isDomainBlocked, getBlockedDomainError } from '../../../../lib/utils/blocklist';
 import { isValidDomain } from '../../../../lib/utils/validate';
+import { getCachedResult, setCachedResult, CHECK_TTL_SECONDS } from '../../../../lib/utils/cache';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+interface CacheKV {
+  get(key: string, type: 'text'): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+}
+
+async function getCacheKV(): Promise<CacheKV | null> {
+  try {
+    const { env } = await getCloudflareContext();
+    return ((env as Record<string, unknown>).CACHE_KV as CacheKV | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const checkFunctions: Record<string, (domain: string) => Promise<CheckResult>> = {
   mx: checkMx,
@@ -61,8 +77,31 @@ export async function GET(
     );
   }
 
+  const ttl = CHECK_TTL_SECONDS[check];
+  const kv = ttl !== undefined ? await getCacheKV() : null;
+
+  // Serve from cache if available
+  if (kv && ttl !== undefined) {
+    const cached = await getCachedResult(kv, check, domain);
+    if (cached) {
+      return NextResponse.json({
+        check,
+        domain,
+        timestamp: new Date().toISOString(),
+        result: cached,
+        cached: true,
+      });
+    }
+  }
+
   try {
     const result = await checkFn(domain);
+
+    // Write to cache (non-blocking)
+    if (kv && ttl !== undefined) {
+      setCachedResult(kv, check, domain, result, ttl).catch(() => {});
+    }
+
     return NextResponse.json({
       check,
       domain,

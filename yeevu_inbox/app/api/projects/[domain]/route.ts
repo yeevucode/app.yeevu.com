@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
-import { getStorage, ProjectScanResult } from '../../../../lib/storage';
+import { getStorage, ProjectScanResult, ScanHistoryEntry } from '../../../../lib/storage';
 
 // GET /api/projects/[domain] - Get a single project
 export async function GET(
@@ -94,8 +94,8 @@ export async function PUT(
     const { domain } = await params;
     const userId = session.user.sub;
 
-    const body = await request.json() as { scanResult?: ProjectScanResult };
-    const { scanResult } = body;
+    const body = await request.json() as { scanResult?: ProjectScanResult; historyEntry?: ScanHistoryEntry };
+    const { scanResult, historyEntry } = body;
 
     if (!scanResult) {
       return NextResponse.json(
@@ -108,7 +108,8 @@ export async function PUT(
     const result = await storage.updateProjectScan(
       userId,
       decodeURIComponent(domain),
-      scanResult
+      scanResult,
+      historyEntry
     );
 
     if (!result.success) {

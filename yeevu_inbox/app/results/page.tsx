@@ -723,6 +723,7 @@ function ResultsContent() {
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [preflightError, setPreflightError] = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
+  const [analyticsEventId, setAnalyticsEventId] = useState<string | null>(null);
 
   // Project save state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -828,10 +829,24 @@ function ResultsContent() {
         results: scanResults,
       };
 
+      const historyEntry = {
+        ts: scanResult.timestamp,
+        finalScore: score || 0,
+        configScore: configScore || 0,
+        reputationTier: reputationTier ?? 'unknown',
+        checks: {
+          dmarc: checks.dmarc?.result?.score ?? 0,
+          spf: checks.spf?.result?.score ?? 0,
+          dkim: checks.dkim?.result?.score ?? 0,
+          mx: checks.mx?.result?.score ?? 0,
+          smtp: checks.smtp?.result?.score ?? 0,
+        },
+      };
+
       const res = await fetch(apiPath('/api/projects'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain, scanResult }),
+        body: JSON.stringify({ domain, scanResult, historyEntry }),
       });
 
       const data = await res.json();
@@ -915,6 +930,7 @@ function ResultsContent() {
           return;
         }
 
+        if (data?.eventId) setAnalyticsEventId(data.eventId);
         setPreflightReady(true);
       } catch {
         if (cancelled) return;
@@ -977,6 +993,34 @@ function ResultsContent() {
     }, 200);
 
   }, [domain, fetchCheck, preflightReady, blockedMessage, preflightError, limitReached]);
+
+  // Fire analytics completion once core checks + blacklist are done (non-blocking)
+  useEffect(() => {
+    const coreChecks = ['dmarc', 'spf', 'dkim', 'mx', 'smtp'] as const;
+    const allCoreAndBlacklistDone =
+      coreChecks.every((c) => checks[c].result !== null) &&
+      checks.blacklist.result !== null;
+
+    if (allCoreAndBlacklistDone && analyticsEventId && score !== null && configScore !== null) {
+      fetch(apiPath('/api/analytics/complete'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: analyticsEventId,
+          configScore,
+          finalScore: score,
+          reputationTier: reputationTier ?? 'unknown',
+          checkStatuses: {
+            mx: checks.mx.result?.status,
+            spf: checks.spf.result?.status,
+            dkim: checks.dkim.result?.status,
+            dmarc: checks.dmarc.result?.status,
+            smtp: checks.smtp.result?.status,
+          },
+        }),
+      }).catch(() => {});
+    }
+  }, [checks, analyticsEventId, score, configScore, reputationTier]);
 
   // Update localStorage with score when it changes
   useEffect(() => {

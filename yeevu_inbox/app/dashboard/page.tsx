@@ -16,10 +16,25 @@ interface ProjectScanResult {
   }>;
 }
 
+interface ScanHistoryEntry {
+  ts: string;
+  finalScore: number;
+  configScore: number;
+  reputationTier: string;
+  checks: {
+    dmarc: number;
+    spf: number;
+    dkim: number;
+    mx: number;
+    smtp: number;
+  };
+}
+
 interface Project {
   domain: string;
   addedAt: string;
   lastScan: ProjectScanResult | null;
+  scanHistory?: ScanHistoryEntry[];
 }
 
 interface ProjectLimits {
@@ -83,22 +98,21 @@ export default function DashboardPage() {
   const rescanProject = async (domain: string) => {
     setScanningDomain(domain);
     try {
-      // Fetch all scan results
-      const checks = ['mx', 'spf', 'dkim', 'dmarc', 'smtp', 'blacklist'];
+      const coreChecks = ['mx', 'spf', 'dkim', 'dmarc', 'smtp'];
+      const allChecks = [...coreChecks, 'blacklist'];
       const results: Record<string, { status: string; score: number }> = {};
-      let totalScore = 0;
-      let totalWeight = 0;
+      const checkScores: Record<string, number> = {};
 
       const weights: Record<string, number> = {
-        dmarc: 25,
-        spf: 20,
-        dkim: 20,
-        mx: 20,
-        smtp: 15,
+        dmarc: 30, spf: 25, dkim: 25, mx: 10, smtp: 10,
+      };
+
+      const reputationMultipliers: Record<string, number> = {
+        clean: 1.0, minor_only: 0.85, major: 0.5, multi_major: 0.25, unknown: 1.0,
       };
 
       await Promise.all(
-        checks.map(async (check) => {
+        allChecks.map(async (check) => {
           const res = await fetch(apiPath(`/api/scan/${check}?domain=${encodeURIComponent(domain)}`));
           if (res.ok) {
             const data = await res.json();
@@ -106,26 +120,47 @@ export default function DashboardPage() {
               status: data.result?.status || 'fail',
               score: data.result?.score || 0,
             };
-            const weight = weights[check] || 0;
-            totalScore += (data.result?.score || 0) * weight;
-            totalWeight += weight;
+            checkScores[check] = data.result?.score || 0;
           }
         })
       );
 
-      const overallScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+      let totalScore = 0;
+      let totalWeight = 0;
+      for (const check of coreChecks) {
+        if (checkScores[check] !== undefined) {
+          totalScore += checkScores[check] * (weights[check] || 0);
+          totalWeight += weights[check] || 0;
+        }
+      }
 
-      // Update project with new scan result
-      const scanResult: ProjectScanResult = {
-        timestamp: new Date().toISOString(),
-        overallScore,
-        results,
+      const configScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
+      const blacklistResult = results['blacklist'];
+      const reputationTier = blacklistResult ? 'clean' : 'unknown';
+      const multiplier = reputationMultipliers[reputationTier] ?? 1.0;
+      const overallScore = Math.round(configScore * multiplier);
+
+      const timestamp = new Date().toISOString();
+      const scanResult: ProjectScanResult = { timestamp, overallScore, results };
+
+      const historyEntry: ScanHistoryEntry = {
+        ts: timestamp,
+        finalScore: overallScore,
+        configScore,
+        reputationTier,
+        checks: {
+          dmarc: checkScores['dmarc'] ?? 0,
+          spf: checkScores['spf'] ?? 0,
+          dkim: checkScores['dkim'] ?? 0,
+          mx: checkScores['mx'] ?? 0,
+          smtp: checkScores['smtp'] ?? 0,
+        },
       };
 
       await fetch(apiPath(`/api/projects/${encodeURIComponent(domain)}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scanResult }),
+        body: JSON.stringify({ scanResult, historyEntry }),
       });
 
       await loadProjects();
@@ -251,6 +286,32 @@ export default function DashboardPage() {
                       </div>
                     ))}
                   </div>
+
+                  {project.scanHistory && project.scanHistory.length > 1 && (
+                    <div className="scan-history">
+                      <div className="scan-history-title">Scan History</div>
+                      <table className="scan-history-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Score</th>
+                            <th>Config</th>
+                            <th>Reputation</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {project.scanHistory.slice(0, 10).map((entry, i) => (
+                            <tr key={i}>
+                              <td>{formatDate(entry.ts)}</td>
+                              <td style={{ color: getScoreColor(entry.finalScore) }}>{entry.finalScore}</td>
+                              <td>{entry.configScore}</td>
+                              <td>{entry.reputationTier}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="property-no-scan">

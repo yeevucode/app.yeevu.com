@@ -17,10 +17,25 @@ export interface ProjectScanResult {
   }>;
 }
 
+export interface ScanHistoryEntry {
+  ts: string;
+  finalScore: number;
+  configScore: number;
+  reputationTier: string;
+  checks: {
+    dmarc: number;
+    spf: number;
+    dkim: number;
+    mx: number;
+    smtp: number;
+  };
+}
+
 export interface Project {
   domain: string;
   addedAt: string;
   lastScan: ProjectScanResult | null;
+  scanHistory: ScanHistoryEntry[];
 }
 
 export interface UserProjects {
@@ -71,7 +86,8 @@ export interface IProjectStorage {
   addProject(
     userId: string,
     domain: string,
-    scanResult?: ProjectScanResult
+    scanResult?: ProjectScanResult,
+    historyEntry?: ScanHistoryEntry
   ): Promise<AddProjectResult>;
 
   /**
@@ -85,7 +101,8 @@ export interface IProjectStorage {
   updateProjectScan(
     userId: string,
     domain: string,
-    scanResult: ProjectScanResult
+    scanResult: ProjectScanResult,
+    historyEntry?: ScanHistoryEntry
   ): Promise<UpdateScanResult>;
 
   /**

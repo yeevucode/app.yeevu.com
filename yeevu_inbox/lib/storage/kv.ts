@@ -11,6 +11,7 @@ import {
   UserProjects,
   Project,
   ProjectScanResult,
+  ScanHistoryEntry,
   ProjectLimits,
   AddProjectResult,
   RemoveProjectResult,
@@ -90,7 +91,8 @@ export class KVStorage implements IProjectStorage {
   async addProject(
     userId: string,
     domain: string,
-    scanResult?: ProjectScanResult
+    scanResult?: ProjectScanResult,
+    historyEntry?: ScanHistoryEntry
   ): Promise<AddProjectResult> {
     const userProjects = await this.getUserProjects(userId);
 
@@ -114,6 +116,7 @@ export class KVStorage implements IProjectStorage {
       domain: domain.toLowerCase(),
       addedAt: new Date().toISOString(),
       lastScan: scanResult || null,
+      scanHistory: historyEntry ? [historyEntry] : [],
     };
 
     userProjects.projects.push(project);
@@ -142,7 +145,8 @@ export class KVStorage implements IProjectStorage {
   async updateProjectScan(
     userId: string,
     domain: string,
-    scanResult: ProjectScanResult
+    scanResult: ProjectScanResult,
+    historyEntry?: ScanHistoryEntry
   ): Promise<UpdateScanResult> {
     const userProjects = await this.getUserProjects(userId);
 
@@ -155,6 +159,13 @@ export class KVStorage implements IProjectStorage {
     }
 
     project.lastScan = scanResult;
+
+    if (historyEntry) {
+      if (!project.scanHistory) project.scanHistory = [];
+      project.scanHistory.unshift(historyEntry);
+      if (project.scanHistory.length > 20) project.scanHistory.length = 20;
+    }
+
     await this.saveUserProjects(userProjects);
 
     return { success: true };
