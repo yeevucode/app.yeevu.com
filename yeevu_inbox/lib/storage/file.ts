@@ -2,6 +2,7 @@
  * File-based Storage Implementation
  *
  * Used for local development. Stores user data as JSON files.
+ * Tier/limit enforcement is handled by the API layer via D1.
  */
 
 import { promises as fs } from 'fs';
@@ -12,11 +13,9 @@ import {
   Project,
   ProjectScanResult,
   ScanHistoryEntry,
-  ProjectLimits,
   AddProjectResult,
   RemoveProjectResult,
   UpdateScanResult,
-  FREE_PROJECT_LIMIT,
 } from './interface';
 
 const DATA_DIR = path.join(process.cwd(), 'data', 'projects');
@@ -47,12 +46,14 @@ export class FileStorage implements IProjectStorage {
 
     try {
       const data = await fs.readFile(filePath, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      // Return default structure if file doesn't exist
+      const raw = JSON.parse(data) as Record<string, unknown>;
       return {
         userId,
-        isPaid: false,
+        projects: (raw.projects as Project[]) ?? [],
+      };
+    } catch {
+      return {
+        userId,
         projects: [],
       };
     }
@@ -64,20 +65,6 @@ export class FileStorage implements IProjectStorage {
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
   }
 
-  private canAddProject(userProjects: UserProjects): boolean {
-    if (userProjects.isPaid) return true;
-    return userProjects.projects.length < FREE_PROJECT_LIMIT;
-  }
-
-  async getProjectLimits(userId: string): Promise<ProjectLimits> {
-    const userProjects = await this.getUserProjects(userId);
-    return {
-      current: userProjects.projects.length,
-      limit: userProjects.isPaid ? null : FREE_PROJECT_LIMIT,
-      canAdd: this.canAddProject(userProjects),
-    };
-  }
-
   async addProject(
     userId: string,
     domain: string,
@@ -86,20 +73,11 @@ export class FileStorage implements IProjectStorage {
   ): Promise<AddProjectResult> {
     const userProjects = await this.getUserProjects(userId);
 
-    // Check if project already exists
     const existing = userProjects.projects.find(
       (p) => p.domain.toLowerCase() === domain.toLowerCase()
     );
     if (existing) {
       return { success: false, error: 'Project already exists' };
-    }
-
-    // Check limit
-    if (!this.canAddProject(userProjects)) {
-      return {
-        success: false,
-        error: `Free users are limited to ${FREE_PROJECT_LIMIT} projects. Upgrade to add more.`,
-      };
     }
 
     const project: Project = {
@@ -169,11 +147,5 @@ export class FileStorage implements IProjectStorage {
         (p) => p.domain.toLowerCase() === domain.toLowerCase()
       ) || null
     );
-  }
-
-  async setUserPaidStatus(userId: string, isPaid: boolean): Promise<void> {
-    const userProjects = await this.getUserProjects(userId);
-    userProjects.isPaid = isPaid;
-    await this.saveUserProjects(userProjects);
   }
 }

@@ -64,6 +64,7 @@ export async function GET() {
     topUsers,
     saves24h, saves7d, saves30d,
     recentScans,
+    userTiers,
   ] = await Promise.all([
     queryAll(db, `SELECT COUNT(*) as count FROM scan_events WHERE ts > ? AND limit_hit = 0`, now24h),
     queryAll(db, `SELECT COUNT(*) as count FROM scan_events WHERE ts > ? AND limit_hit = 0`, now7d),
@@ -90,6 +91,8 @@ export async function GET() {
     queryAll(db, `SELECT COUNT(*) as count FROM project_saves WHERE ts > ?`, now30d),
 
     queryAll(db, `SELECT id, ts, domain, auth_status, user_email, ip, final_score, limit_hit FROM scan_events ORDER BY ts DESC LIMIT 100`),
+
+    queryAll(db, `SELECT se.user_id, MAX(se.user_email) as user_email, COALESCE(u.tier, 'free') as tier FROM scan_events se LEFT JOIN users u ON u.user_id = se.user_id WHERE se.auth_status = 'authenticated' AND se.user_id IS NOT NULL GROUP BY se.user_id ORDER BY CASE COALESCE(u.tier, 'free') WHEN 'unlimited' THEN 0 WHEN 'premium' THEN 1 ELSE 2 END, MAX(se.user_email)`),
   ]);
 
   return NextResponse.json({
@@ -115,5 +118,6 @@ export async function GET() {
       '30d': saves30d[0]?.count ?? 0,
     },
     recentScans,
+    userTiers,
   });
 }

@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 const API_BASE = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
 const apiPath = (path: string) => `${API_BASE}${path}`;
 
+type UserTier = 'free' | 'premium' | 'unlimited';
+
 interface RecentScan {
   id: string;
   ts: number;
@@ -14,6 +16,12 @@ interface RecentScan {
   ip: string | null;
   final_score: number | null;
   limit_hit: number;
+}
+
+interface UserTierRow {
+  user_id: string;
+  user_email: string | null;
+  tier: UserTier;
 }
 
 interface AdminData {
@@ -27,6 +35,7 @@ interface AdminData {
   topUsers: { user_id: string; user_email: string | null; count: number }[];
   projectSaves: { '24h': number; '7d': number; '30d': number };
   recentScans: RecentScan[];
+  userTiers: UserTierRow[];
 }
 
 function Bar({ value, max, color = '#3b82f6' }: { value: number; max: number; color?: string }) {
@@ -41,19 +50,143 @@ function Bar({ value, max, color = '#3b82f6' }: { value: number; max: number; co
   );
 }
 
+const TIER_COLORS: Record<UserTier, string> = {
+  free: '#64748b',
+  premium: '#3b82f6',
+  unlimited: '#a855f7',
+};
+
+function TierBadge({ tier }: { tier: UserTier }) {
+  return (
+    <span style={{
+      fontSize: 11,
+      padding: '2px 6px',
+      borderRadius: 4,
+      background: TIER_COLORS[tier] + '22',
+      color: TIER_COLORS[tier],
+      border: `1px solid ${TIER_COLORS[tier]}44`,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    }}>
+      {tier}
+    </span>
+  );
+}
+
+function ManageTiers({ rows, onRefresh }: { rows: UserTierRow[]; onRefresh: () => void }) {
+  const [pending, setPending] = useState<Record<string, UserTier>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<string, string>>({});
+
+  const setTier = (userId: string, tier: UserTier) => {
+    setPending((p) => ({ ...p, [userId]: tier }));
+  };
+
+  const save = async (row: UserTierRow) => {
+    const tier = pending[row.user_id] ?? row.tier;
+    setSaving(row.user_id);
+    try {
+      const res = await fetch(apiPath('/api/admin/tier'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: row.user_id, user_email: row.user_email, tier }),
+      });
+      if (!res.ok) {
+        const d = await res.json() as { error?: string };
+        throw new Error(d.error ?? String(res.status));
+      }
+      setFeedback((f) => ({ ...f, [row.user_id]: 'saved' }));
+      setTimeout(() => setFeedback((f) => { const n = { ...f }; delete n[row.user_id]; return n; }), 2000);
+      onRefresh();
+    } catch (e) {
+      setFeedback((f) => ({ ...f, [row.user_id]: (e as Error).message }));
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <thead>
+        <tr style={{ color: '#64748b', fontSize: 12 }}>
+          <th style={{ textAlign: 'left', padding: '4px 0' }}>Email</th>
+          <th style={{ textAlign: 'left', padding: '4px 12px' }}>Current</th>
+          <th style={{ textAlign: 'left', padding: '4px 12px' }}>Set Tier</th>
+          <th style={{ textAlign: 'right', padding: '4px 0' }}></th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => {
+          const selectedTier = pending[row.user_id] ?? row.tier;
+          const isDirty = selectedTier !== row.tier;
+          const fb = feedback[row.user_id];
+          return (
+            <tr key={row.user_id} style={{ borderTop: '1px solid #1e293b' }}>
+              <td style={{ padding: '6px 0' }}>{row.user_email ?? row.user_id}</td>
+              <td style={{ padding: '6px 12px' }}><TierBadge tier={row.tier} /></td>
+              <td style={{ padding: '6px 12px' }}>
+                <select
+                  value={selectedTier}
+                  onChange={(e) => setTier(row.user_id, e.target.value as UserTier)}
+                  style={{
+                    background: '#1e293b',
+                    color: '#e2e8f0',
+                    border: '1px solid #334155',
+                    borderRadius: 4,
+                    padding: '2px 6px',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="free">free</option>
+                  <option value="premium">premium</option>
+                  <option value="unlimited">unlimited</option>
+                </select>
+              </td>
+              <td style={{ textAlign: 'right', padding: '6px 0' }}>
+                {fb ? (
+                  <span style={{ fontSize: 12, color: fb === 'saved' ? '#22c55e' : '#ef4444' }}>{fb}</span>
+                ) : (
+                  <button
+                    onClick={() => save(row)}
+                    disabled={!isDirty || saving === row.user_id}
+                    style={{
+                      background: isDirty ? '#3b82f6' : 'transparent',
+                      color: isDirty ? '#fff' : '#475569',
+                      border: '1px solid ' + (isDirty ? '#3b82f6' : '#334155'),
+                      borderRadius: 4,
+                      padding: '2px 10px',
+                      fontSize: 12,
+                      cursor: isDirty ? 'pointer' : 'default',
+                    }}
+                  >
+                    {saving === row.user_id ? '...' : 'Save'}
+                  </button>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 export default function AdminPage() {
   const [data, setData] = useState<AdminData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     fetch(apiPath('/api/admin'))
       .then((r) => {
-        if (!r.ok) return r.json().then((d) => { throw new Error(d.error || String(r.status)); });
+        if (!r.ok) return r.json().then((d) => { throw new Error((d as { error?: string }).error || String(r.status)); });
         return r.json();
       })
-      .then(setData)
-      .catch((e) => setError(e.message));
-  }, []);
+      .then((d) => setData(d as AdminData))
+      .catch((e: Error) => setError(e.message));
+  };
+
+  useEffect(() => { load(); }, []);
 
   if (error) {
     return <div style={{ minHeight: '100vh', background: '#0f172a', padding: 40, color: '#ef4444' }}>Error: {error}</div>;
@@ -187,6 +320,16 @@ export default function AdminPage() {
             ))}
           </tbody>
         </table>
+      </section>
+
+      {/* Manage User Tiers */}
+      <section style={{ marginBottom: 40 }}>
+        <h2 style={{ fontSize: 14, color: '#94a3b8', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Manage User Tiers</h2>
+        {data.userTiers.length === 0 ? (
+          <p style={{ color: '#475569', fontSize: 13 }}>No authenticated users yet.</p>
+        ) : (
+          <ManageTiers rows={data.userTiers} onRefresh={load} />
+        )}
       </section>
 
       {/* Recent Scans */}

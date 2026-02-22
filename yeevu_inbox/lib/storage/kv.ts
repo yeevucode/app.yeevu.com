@@ -2,7 +2,8 @@
  * Cloudflare KV Storage Implementation
  *
  * Used in production on Cloudflare Workers.
- * Stores user data in Cloudflare KV namespace.
+ * Stores user project data in Cloudflare KV namespace.
+ * Tier/limit enforcement is handled by the API layer via D1.
  */
 
 import { getCloudflareContext } from '@opennextjs/cloudflare';
@@ -12,11 +13,9 @@ import {
   Project,
   ProjectScanResult,
   ScanHistoryEntry,
-  ProjectLimits,
   AddProjectResult,
   RemoveProjectResult,
   UpdateScanResult,
-  FREE_PROJECT_LIMIT,
 } from './interface';
 
 // Local KVNamespace interface to avoid global type conflicts
@@ -57,13 +56,15 @@ export class KVStorage implements IProjectStorage {
     const data = await kv.get(key, 'json');
 
     if (data) {
-      return data as UserProjects;
+      const raw = data as Record<string, unknown>;
+      return {
+        userId,
+        projects: (raw.projects as Project[]) ?? [],
+      };
     }
 
-    // Return default structure if not found
     return {
       userId,
-      isPaid: false,
       projects: [],
     };
   }
@@ -72,20 +73,6 @@ export class KVStorage implements IProjectStorage {
     const kv = await this.getKV();
     const key = getUserKey(data.userId);
     await kv.put(key, JSON.stringify(data));
-  }
-
-  private canAddProject(userProjects: UserProjects): boolean {
-    if (userProjects.isPaid) return true;
-    return userProjects.projects.length < FREE_PROJECT_LIMIT;
-  }
-
-  async getProjectLimits(userId: string): Promise<ProjectLimits> {
-    const userProjects = await this.getUserProjects(userId);
-    return {
-      current: userProjects.projects.length,
-      limit: userProjects.isPaid ? null : FREE_PROJECT_LIMIT,
-      canAdd: this.canAddProject(userProjects),
-    };
   }
 
   async addProject(
@@ -102,14 +89,6 @@ export class KVStorage implements IProjectStorage {
     );
     if (existing) {
       return { success: false, error: 'Project already exists' };
-    }
-
-    // Check limit
-    if (!this.canAddProject(userProjects)) {
-      return {
-        success: false,
-        error: `Free users are limited to ${FREE_PROJECT_LIMIT} projects. Upgrade to add more.`,
-      };
     }
 
     const project: Project = {
@@ -179,11 +158,5 @@ export class KVStorage implements IProjectStorage {
         (p) => p.domain.toLowerCase() === domain.toLowerCase()
       ) || null
     );
-  }
-
-  async setUserPaidStatus(userId: string, isPaid: boolean): Promise<void> {
-    const userProjects = await this.getUserProjects(userId);
-    userProjects.isPaid = isPaid;
-    await this.saveUserProjects(userProjects);
   }
 }

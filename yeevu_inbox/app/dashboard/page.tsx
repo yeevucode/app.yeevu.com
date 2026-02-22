@@ -41,6 +41,7 @@ interface ProjectLimits {
   current: number;
   limit: number | null;
   canAdd: boolean;
+  tier: 'free' | 'premium' | 'unlimited';
 }
 
 export default function DashboardPage() {
@@ -230,6 +231,21 @@ export default function DashboardPage() {
               {limits.current} / {limits.limit ?? '∞'}
             </span>
             <span className="limit-label">projects</span>
+            {limits.tier !== 'free' && (
+              <span style={{
+                fontSize: 11,
+                padding: '2px 6px',
+                borderRadius: 4,
+                marginLeft: 8,
+                background: limits.tier === 'unlimited' ? '#a855f722' : '#3b82f622',
+                color: limits.tier === 'unlimited' ? '#a855f7' : '#3b82f6',
+                border: `1px solid ${limits.tier === 'unlimited' ? '#a855f744' : '#3b82f644'}`,
+                textTransform: 'uppercase' as const,
+                letterSpacing: 0.5,
+              }}>
+                {limits.tier}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -349,10 +365,17 @@ export default function DashboardPage() {
       {limits && !limits.canAdd && (
         <div className="upgrade-banner">
           <div className="upgrade-content">
-            <h3>Unlock Unlimited Projects</h3>
-            <p>
-              Free accounts are limited to {limits.limit} projects. Upgrade to track unlimited domains.
-            </p>
+            {limits.tier === 'free' ? (
+              <>
+                <h3>Upgrade to Save More Domains</h3>
+                <p>Free accounts can save 1 domain. Upgrade to Premium (10 domains) or Unlimited.</p>
+              </>
+            ) : (
+              <>
+                <h3>Upgrade to Unlimited</h3>
+                <p>Premium accounts can save up to 10 domains. Upgrade to Unlimited for no limit.</p>
+              </>
+            )}
           </div>
           <a href="#upgrade" className="search-button">
             Upgrade Now

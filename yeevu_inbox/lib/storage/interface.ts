@@ -7,6 +7,8 @@
  * - Future: Database storage (Supabase, PlanetScale, etc.)
  */
 
+import { UserTier } from '../utils/tier';
+
 export interface ProjectScanResult {
   timestamp: string;
   overallScore: number;
@@ -40,7 +42,6 @@ export interface Project {
 
 export interface UserProjects {
   userId: string;
-  isPaid: boolean;
   projects: Project[];
 }
 
@@ -48,6 +49,7 @@ export interface ProjectLimits {
   current: number;
   limit: number | null;
   canAdd: boolean;
+  tier: UserTier;
 }
 
 export interface AddProjectResult {
@@ -76,12 +78,7 @@ export interface IProjectStorage {
   getUserProjects(userId: string): Promise<UserProjects>;
 
   /**
-   * Get project limits for a user
-   */
-  getProjectLimits(userId: string): Promise<ProjectLimits>;
-
-  /**
-   * Add a project for a user
+   * Add a project for a user (no limit enforcement — handled by API layer)
    */
   addProject(
     userId: string,
@@ -109,12 +106,4 @@ export interface IProjectStorage {
    * Get a single project
    */
   getProject(userId: string, domain: string): Promise<Project | null>;
-
-  /**
-   * Set user paid status
-   */
-  setUserPaidStatus(userId: string, isPaid: boolean): Promise<void>;
 }
-
-// Free tier limit
-export const FREE_PROJECT_LIMIT = 2;
