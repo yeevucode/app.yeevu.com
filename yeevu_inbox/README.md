@@ -71,6 +71,10 @@ AUTH0_ISSUER_BASE_URL
 ```toml
 NEXT_PUBLIC_BASE_PATH = "/deliverability"
 AUTH0_BASE_URL = "https://app.yeevu.com/deliverability"
+AUTH0_SESSION_NAME = "yeevu_inbox_session"
+AUTH0_COOKIE_PATH = "/deliverability"
+AUTH0_TRANSACTION_COOKIE_NAME = "yeevu_inbox_tx"
+AUTH0_TRANSACTION_COOKIE_PATH = "/deliverability"
 ```
 
 **`.env.production`** (build-time, inlines `NEXT_PUBLIC_BASE_PATH` into client bundle):
@@ -222,6 +226,10 @@ AUTH0_SECRET=<long-random-string>
 AUTH0_ISSUER_BASE_URL=https://auth.yeevu.com
 AUTH0_CLIENT_ID=<client-id>
 AUTH0_CLIENT_SECRET=<client-secret>
+AUTH0_SESSION_NAME=yeevu_inbox_session
+AUTH0_COOKIE_PATH=/deliverability
+AUTH0_TRANSACTION_COOKIE_NAME=yeevu_inbox_tx
+AUTH0_TRANSACTION_COOKIE_PATH=/deliverability
 
 # Local dev
 AUTH0_BASE_URL=http://localhost:3000

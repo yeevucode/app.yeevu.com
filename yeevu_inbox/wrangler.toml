@@ -11,6 +11,10 @@ binding = "ASSETS"
 NEXT_PUBLIC_BASE_PATH = "/deliverability"
 AUTH0_ISSUER_BASE_URL = "https://auth.yeevu.com"
 AUTH0_BASE_URL = "https://app.yeevu.com/deliverability"
+AUTH0_SESSION_NAME = "yeevu_inbox_session"
+AUTH0_COOKIE_PATH = "/deliverability"
+AUTH0_TRANSACTION_COOKIE_NAME = "yeevu_inbox_tx"
+AUTH0_TRANSACTION_COOKIE_PATH = "/deliverability"
 ADMIN_USER_IDS = "auth0|68699f577e5e9a9c0d641fa2"
 
 # KV Namespace for storing user projects
