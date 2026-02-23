@@ -69,7 +69,8 @@ export class FileStorage implements IProjectStorage {
     userId: string,
     domain: string,
     scanResult?: ProjectScanResult,
-    historyEntry?: ScanHistoryEntry
+    historyEntry?: ScanHistoryEntry,
+    folder?: string
   ): Promise<AddProjectResult> {
     const userProjects = await this.getUserProjects(userId);
 
@@ -85,12 +86,39 @@ export class FileStorage implements IProjectStorage {
       addedAt: new Date().toISOString(),
       lastScan: scanResult || null,
       scanHistory: historyEntry ? [historyEntry] : [],
+      ...(folder ? { folder } : {}),
     };
 
     userProjects.projects.push(project);
     await this.saveUserProjects(userProjects);
 
     return { success: true, project };
+  }
+
+  async updateProjectFolder(
+    userId: string,
+    domain: string,
+    folder: string | undefined
+  ): Promise<UpdateScanResult> {
+    const userProjects = await this.getUserProjects(userId);
+
+    const project = userProjects.projects.find(
+      (p) => p.domain.toLowerCase() === domain.toLowerCase()
+    );
+
+    if (!project) {
+      return { success: false, error: 'Project not found' };
+    }
+
+    if (folder) {
+      project.folder = folder;
+    } else {
+      delete project.folder;
+    }
+
+    await this.saveUserProjects(userProjects);
+
+    return { success: true };
   }
 
   async removeProject(userId: string, domain: string): Promise<RemoveProjectResult> {

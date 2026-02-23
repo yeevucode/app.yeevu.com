@@ -38,6 +38,7 @@ export interface Project {
   addedAt: string;
   lastScan: ProjectScanResult | null;
   scanHistory: ScanHistoryEntry[];
+  folder?: string;
 }
 
 export interface UserProjects {
@@ -84,7 +85,8 @@ export interface IProjectStorage {
     userId: string,
     domain: string,
     scanResult?: ProjectScanResult,
-    historyEntry?: ScanHistoryEntry
+    historyEntry?: ScanHistoryEntry,
+    folder?: string
   ): Promise<AddProjectResult>;
 
   /**
@@ -100,6 +102,15 @@ export interface IProjectStorage {
     domain: string,
     scanResult: ProjectScanResult,
     historyEntry?: ScanHistoryEntry
+  ): Promise<UpdateScanResult>;
+
+  /**
+   * Move a project to a different folder (or remove from folder)
+   */
+  updateProjectFolder(
+    userId: string,
+    domain: string,
+    folder: string | undefined
   ): Promise<UpdateScanResult>;
 
   /**

@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.sub;
 
-    const body = await request.json() as { domain?: string; scanResult?: ProjectScanResult; historyEntry?: ScanHistoryEntry };
-    const { domain, scanResult, historyEntry } = body;
+    const body = await request.json() as { domain?: string; scanResult?: ProjectScanResult; historyEntry?: ScanHistoryEntry; folder?: string };
+    const { domain, scanResult, historyEntry, folder } = body;
 
     if (!domain) {
       return NextResponse.json(
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await storage.addProject(userId, domain, scanResult, historyEntry);
+    const result = await storage.addProject(userId, domain, scanResult, historyEntry, folder);
 
     if (!result.success) {
       return NextResponse.json(

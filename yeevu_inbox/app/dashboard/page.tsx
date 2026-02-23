@@ -35,6 +35,7 @@ interface Project {
   addedAt: string;
   lastScan: ProjectScanResult | null;
   scanHistory?: ScanHistoryEntry[];
+  folder?: string;
 }
 
 interface ProjectLimits {
@@ -51,7 +52,19 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [scanningDomain, setScanningDomain] = useState<string | null>(null);
   const [removingDomain, setRemovingDomain] = useState<string | null>(null);
+  const [movingDomain, setMovingDomain] = useState<string | null>(null);
+  const [pendingNewFolder, setPendingNewFolder] = useState<{ domain: string } | null>(null);
+  const [newFolderInput, setNewFolderInput] = useState('');
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const router = useRouter();
+
+  const toggleFolder = (key: string) => {
+    setCollapsedFolders(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     loadProjects();
@@ -172,6 +185,34 @@ export default function DashboardPage() {
     }
   };
 
+  const moveProject = async (domain: string, folder: string | undefined) => {
+    setMovingDomain(domain);
+    try {
+      const res = await fetch(apiPath(`/api/projects/${encodeURIComponent(domain)}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder }),
+      });
+      if (!res.ok) throw new Error('Failed to move project');
+      setPendingNewFolder(null);
+      setNewFolderInput('');
+      await loadProjects();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to move project');
+    } finally {
+      setMovingDomain(null);
+    }
+  };
+
+  const handleMoveSelect = (domain: string, value: string) => {
+    if (value === '__new__') {
+      setPendingNewFolder({ domain });
+      setNewFolderInput('');
+      return;
+    }
+    moveProject(domain, value || undefined);
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 70) return 'var(--success)';
     if (score >= 40) return 'var(--warning)';
@@ -261,106 +302,226 @@ export default function DashboardPage() {
             Scan a Domain
           </Link>
         </div>
-      ) : (
-        <div className="properties-grid">
-          {projects.map((project) => (
-            <div key={project.domain} className="property-card">
-              <div className="property-header">
-                <h3 className="property-domain">{project.domain}</h3>
-                {project.lastScan && (
-                  <div
-                    className="property-score"
-                    style={{ backgroundColor: getScoreColor(project.lastScan.overallScore) }}
-                  >
-                    {project.lastScan.overallScore}
-                  </div>
-                )}
-              </div>
+      ) : (() => {
+          const allFolders = [...new Set(projects.map(p => p.folder).filter(Boolean))] as string[];
+          const grouped = projects.reduce((acc, p) => {
+            const key = p.folder ?? '';
+            (acc[key] ??= []).push(p);
+            return acc;
+          }, {} as Record<string, Project[]>);
+          const folderKeys = Object.keys(grouped).sort((a, b) =>
+            a === '' ? 1 : b === '' ? -1 : a.localeCompare(b)
+          );
 
-              {project.lastScan ? (
-                <>
-                  <div className="property-status">
-                    <span
-                      className="status-badge"
-                      style={{ color: getScoreColor(project.lastScan.overallScore) }}
+          return (
+            <>
+              {folderKeys.map(folderKey => {
+                const isCollapsed = collapsedFolders.has(folderKey);
+                return (
+                <div key={folderKey} style={{ marginBottom: '2rem' }}>
+                  {folderKeys.length > 1 && (
+                    <button
+                      onClick={() => toggleFolder(folderKey)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: 'none',
+                        border: 'none',
+                        padding: '0 0 0.875rem',
+                        cursor: 'pointer',
+                        width: '100%',
+                        textAlign: 'left',
+                      }}
                     >
-                      {getScoreLabel(project.lastScan.overallScore)}
-                    </span>
-                    <span className="scan-date">
-                      Last scan: {formatDate(project.lastScan.timestamp)}
-                    </span>
-                  </div>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#64748b',
+                        transition: 'transform 0.15s',
+                        display: 'inline-block',
+                        transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                      }}>▾</span>
+                      <span style={{
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        color: '#64748b',
+                      }}>
+                        {folderKey || 'Uncategorised'}
+                        <span style={{ fontWeight: 400, marginLeft: '0.4em', color: '#475569' }}>
+                          ({grouped[folderKey].length})
+                        </span>
+                      </span>
+                    </button>
+                  )}
+                  {!isCollapsed && <div className="properties-grid">
+                    {grouped[folderKey].map((project) => (
+                      <div key={project.domain} className="property-card">
+                        <div className="property-header">
+                          <h3 className="property-domain">{project.domain}</h3>
+                          {project.lastScan && (
+                            <div
+                              className="property-score"
+                              style={{ backgroundColor: getScoreColor(project.lastScan.overallScore) }}
+                            >
+                              {project.lastScan.overallScore}
+                            </div>
+                          )}
+                        </div>
 
-                  <div className="property-checks">
-                    {Object.entries(project.lastScan.results).map(([check, result]) => (
-                      <div
-                        key={check}
-                        className={`check-badge ${result.status}`}
-                        title={`${check.toUpperCase()}: ${result.score}/100`}
-                      >
-                        {check.toUpperCase()}
+                        {project.lastScan ? (
+                          <>
+                            <div className="property-status">
+                              <span
+                                className="status-badge"
+                                style={{ color: getScoreColor(project.lastScan.overallScore) }}
+                              >
+                                {getScoreLabel(project.lastScan.overallScore)}
+                              </span>
+                              <span className="scan-date">
+                                Last scan: {formatDate(project.lastScan.timestamp)}
+                              </span>
+                            </div>
+
+                            <div className="property-checks">
+                              {Object.entries(project.lastScan.results).map(([check, result]) => (
+                                <div
+                                  key={check}
+                                  className={`check-badge ${result.status}`}
+                                  title={`${check.toUpperCase()}: ${result.score}/100`}
+                                >
+                                  {check.toUpperCase()}
+                                </div>
+                              ))}
+                            </div>
+
+                            {project.scanHistory && project.scanHistory.length > 1 && (
+                              <div className="scan-history">
+                                <div className="scan-history-title">Scan History</div>
+                                <table className="scan-history-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Date</th>
+                                      <th>Score</th>
+                                      <th>Config</th>
+                                      <th>Reputation</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {project.scanHistory.slice(0, 10).map((entry, i) => (
+                                      <tr key={i}>
+                                        <td>{formatDate(entry.ts)}</td>
+                                        <td style={{ color: getScoreColor(entry.finalScore) }}>{entry.finalScore}</td>
+                                        <td>{entry.configScore}</td>
+                                        <td>{entry.reputationTier}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="property-no-scan">
+                            <p>No scan data yet</p>
+                          </div>
+                        )}
+
+                        {/* Move to folder */}
+                        <div style={{ margin: '0.75rem 0 0', padding: '0.75rem 0 0', borderTop: '1px solid rgba(100,116,139,0.15)' }}>
+                          <label style={{ color: '#64748b', fontSize: '0.75rem', display: 'block', marginBottom: '0.375rem' }}>
+                            Folder
+                          </label>
+                          <select
+                            value={project.folder ?? ''}
+                            onChange={e => handleMoveSelect(project.domain, e.target.value)}
+                            disabled={movingDomain === project.domain}
+                            style={{
+                              width: '100%',
+                              padding: '0.375rem 0.625rem',
+                              background: 'rgba(30, 41, 59, 0.6)',
+                              border: '1px solid rgba(100, 116, 139, 0.3)',
+                              borderRadius: '5px',
+                              color: '#cbd5e1',
+                              fontSize: '0.8125rem',
+                            }}
+                          >
+                            <option value="">No folder</option>
+                            {allFolders.map(f => (
+                              <option key={f} value={f}>{f}</option>
+                            ))}
+                            <option value="__new__">New folder…</option>
+                          </select>
+                          {pendingNewFolder?.domain === project.domain && (
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                              <input
+                                type="text"
+                                value={newFolderInput}
+                                onChange={e => setNewFolderInput(e.target.value)}
+                                placeholder="Folder name"
+                                autoFocus
+                                style={{
+                                  flex: 1,
+                                  padding: '0.375rem 0.625rem',
+                                  background: 'rgba(30, 41, 59, 0.8)',
+                                  border: '1px solid rgba(100, 116, 139, 0.35)',
+                                  borderRadius: '5px',
+                                  color: '#e2e8f0',
+                                  fontSize: '0.8125rem',
+                                }}
+                              />
+                              <button
+                                onClick={() => moveProject(project.domain, newFolderInput.trim())}
+                                disabled={!newFolderInput.trim() || movingDomain === project.domain}
+                                className="action-btn rescan"
+                                style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }}
+                              >
+                                Move
+                              </button>
+                              <button
+                                onClick={() => { setPendingNewFolder(null); setNewFolderInput(''); }}
+                                className="action-btn remove"
+                                style={{ padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="property-actions">
+                          <Link
+                            href={`/results?domain=${encodeURIComponent(project.domain)}`}
+                            className="action-btn view"
+                          >
+                            View Details
+                          </Link>
+                          <button
+                            onClick={() => rescanProject(project.domain)}
+                            disabled={scanningDomain === project.domain}
+                            className="action-btn rescan"
+                          >
+                            {scanningDomain === project.domain ? 'Scanning...' : 'Rescan'}
+                          </button>
+                          <button
+                            onClick={() => removeProject(project.domain)}
+                            disabled={removingDomain === project.domain}
+                            className="action-btn remove"
+                          >
+                            {removingDomain === project.domain ? '...' : 'Remove'}
+                          </button>
+                        </div>
                       </div>
                     ))}
-                  </div>
-
-                  {project.scanHistory && project.scanHistory.length > 1 && (
-                    <div className="scan-history">
-                      <div className="scan-history-title">Scan History</div>
-                      <table className="scan-history-table">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Score</th>
-                            <th>Config</th>
-                            <th>Reputation</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {project.scanHistory.slice(0, 10).map((entry, i) => (
-                            <tr key={i}>
-                              <td>{formatDate(entry.ts)}</td>
-                              <td style={{ color: getScoreColor(entry.finalScore) }}>{entry.finalScore}</td>
-                              <td>{entry.configScore}</td>
-                              <td>{entry.reputationTier}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="property-no-scan">
-                  <p>No scan data yet</p>
+                  </div>}
                 </div>
-              )}
-
-              <div className="property-actions">
-                <Link
-                  href={`/results?domain=${encodeURIComponent(project.domain)}`}
-                  className="action-btn view"
-                >
-                  View Details
-                </Link>
-                <button
-                  onClick={() => rescanProject(project.domain)}
-                  disabled={scanningDomain === project.domain}
-                  className="action-btn rescan"
-                >
-                  {scanningDomain === project.domain ? 'Scanning...' : 'Rescan'}
-                </button>
-                <button
-                  onClick={() => removeProject(project.domain)}
-                  disabled={removingDomain === project.domain}
-                  className="action-btn remove"
-                >
-                  {removingDomain === project.domain ? '...' : 'Remove'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                );
+              })}
+            </>
+          );
+        })()
+      }
 
       {limits && !limits.canAdd && (
         <div className="upgrade-banner">

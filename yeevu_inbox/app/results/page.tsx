@@ -731,6 +731,10 @@ function ResultsContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [projectLimits, setProjectLimits] = useState<{ current: number; limit: number | null; canAdd: boolean } | null>(null);
+  const [showSavePanel, setShowSavePanel] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
+  const [existingFolders, setExistingFolders] = useState<string[]>([]);
 
   const [checks, setChecks] = useState<ChecksState>(() => {
     const initial: ChecksState = {} as ChecksState;
@@ -794,6 +798,13 @@ function ResultsContent() {
             (p: { domain: string }) => p.domain.toLowerCase() === domain?.toLowerCase()
           );
           setIsSaved(saved);
+          // Extract unique folder names for the save panel dropdown
+          const folders = [...new Set(
+            data.projects
+              .map((p: { folder?: string }) => p.folder)
+              .filter(Boolean)
+          )] as string[];
+          setExistingFolders(folders);
         }
       } catch {
         setIsAuthenticated(false);
@@ -804,8 +815,8 @@ function ResultsContent() {
     }
   }, [domain]);
 
-  // Save domain as project
-  const saveAsProject = async () => {
+  // Save domain as project (optionally into a folder)
+  const saveAsProject = async (folder?: string) => {
     if (!domain || !isAuthenticated || isSaved) return;
 
     setIsSaving(true);
@@ -846,7 +857,7 @@ function ResultsContent() {
       const res = await fetch(apiPath('/api/projects'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain, scanResult, historyEntry }),
+        body: JSON.stringify({ domain, scanResult, historyEntry, ...(folder ? { folder } : {}) }),
       });
 
       const data = await res.json();
@@ -857,12 +868,20 @@ function ResultsContent() {
       }
 
       setIsSaved(true);
+      setShowSavePanel(false);
       setProjectLimits(data.limits);
     } catch {
       setSaveError('Failed to save project');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSavePanelSubmit = () => {
+    const folder = selectedFolder === '__new__'
+      ? newFolderName.trim() || undefined
+      : selectedFolder || undefined;
+    saveAsProject(folder);
   };
 
   // Fetch a single check
@@ -1298,11 +1317,11 @@ function ResultsContent() {
               </Link>
             ) : (
               <button
-                onClick={saveAsProject}
-                disabled={isSaving || score === null}
+                onClick={() => setShowSavePanel(v => !v)}
+                disabled={score === null}
                 className="save-project-btn"
               >
-                {isSaving ? 'Saving...' : '+ Save as Project'}
+                + Save as Project
               </button>
             )
           )}
@@ -1312,10 +1331,89 @@ function ResultsContent() {
             </a>
           )}
         </div>
-        {saveError && (
-          <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '0.5rem', textAlign: 'right' }}>
-            {saveError}
-          </p>
+
+        {/* Inline save panel — folder picker */}
+        {isAuthenticated === true && showSavePanel && !isSaved && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '1.25rem',
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid rgba(100, 116, 139, 0.35)',
+            borderRadius: '10px',
+          }}>
+            <h4 style={{ color: '#f1f5f9', margin: '0 0 1rem', fontSize: '0.9375rem' }}>Save as Project</h4>
+            <div style={{ marginBottom: '0.875rem' }}>
+              <span style={{ color: '#64748b', fontSize: '0.8125rem', display: 'block', marginBottom: '0.25rem' }}>Domain</span>
+              <span style={{ color: '#e2e8f0', fontSize: '0.9rem' }}>{domain}</span>
+            </div>
+            <div style={{ marginBottom: '0.875rem' }}>
+              <label style={{ color: '#64748b', fontSize: '0.8125rem', display: 'block', marginBottom: '0.375rem' }}>
+                Folder
+              </label>
+              <select
+                value={selectedFolder}
+                onChange={e => setSelectedFolder(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  background: 'rgba(30, 41, 59, 0.8)',
+                  border: '1px solid rgba(100, 116, 139, 0.35)',
+                  borderRadius: '6px',
+                  color: '#e2e8f0',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <option value="">No folder</option>
+                {existingFolders.map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+                <option value="__new__">New folder…</option>
+              </select>
+            </div>
+            {selectedFolder === '__new__' && (
+              <div style={{ marginBottom: '0.875rem' }}>
+                <label style={{ color: '#64748b', fontSize: '0.8125rem', display: 'block', marginBottom: '0.375rem' }}>
+                  Folder name
+                </label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={e => setNewFolderName(e.target.value)}
+                  placeholder="e.g. Clients"
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(30, 41, 59, 0.8)',
+                    border: '1px solid rgba(100, 116, 139, 0.35)',
+                    borderRadius: '6px',
+                    color: '#e2e8f0',
+                    fontSize: '0.875rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            )}
+            {saveError && (
+              <p style={{ color: 'var(--danger)', fontSize: '0.8rem', margin: '0 0 0.75rem' }}>{saveError}</p>
+            )}
+            <div style={{ display: 'flex', gap: '0.625rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setShowSavePanel(false); setSaveError(null); }}
+                className="action-btn-dark secondary"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePanelSubmit}
+                disabled={isSaving || score === null || (selectedFolder === '__new__' && !newFolderName.trim())}
+                className="save-project-btn"
+              >
+                {isSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Domain Info */}

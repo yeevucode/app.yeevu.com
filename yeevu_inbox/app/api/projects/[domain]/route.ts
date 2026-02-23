@@ -94,8 +94,20 @@ export async function PUT(
     const { domain } = await params;
     const userId = session.user.sub;
 
-    const body = await request.json() as { scanResult?: ProjectScanResult; historyEntry?: ScanHistoryEntry };
-    const { scanResult, historyEntry } = body;
+    const body = await request.json() as { scanResult?: ProjectScanResult; historyEntry?: ScanHistoryEntry; folder?: string };
+    const { scanResult, historyEntry, folder } = body;
+
+    const storage = await getStorage();
+    const decodedDomain = decodeURIComponent(domain);
+
+    // Folder-only update (move project to a different folder)
+    if (!scanResult && 'folder' in body) {
+      const result = await storage.updateProjectFolder(userId, decodedDomain, folder);
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 404 });
+      }
+      return NextResponse.json({ success: true });
+    }
 
     if (!scanResult) {
       return NextResponse.json(
@@ -104,10 +116,9 @@ export async function PUT(
       );
     }
 
-    const storage = await getStorage();
     const result = await storage.updateProjectScan(
       userId,
-      decodeURIComponent(domain),
+      decodedDomain,
       scanResult,
       historyEntry
     );
