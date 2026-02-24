@@ -5,7 +5,7 @@ import { isAdmin } from '../../../../lib/utils/admin';
 import { getDB } from '../../../../lib/utils/analytics';
 import { setUserTier, UserTier } from '../../../../lib/utils/tier';
 
-const VALID_TIERS: UserTier[] = ['free', 'premium', 'unlimited'];
+const VALID_TIERS: UserTier[] = ['free', 'growth', 'scale', 'enterprise'];
 
 export async function POST(request: NextRequest) {
   const session = await getSession();

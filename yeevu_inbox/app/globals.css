@@ -157,6 +157,23 @@ a:hover {
   text-decoration: underline;
 }
 
+.footer-tools {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.375rem 1.25rem;
+  margin-bottom: 0.875rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid rgba(245, 196, 0, 0.15);
+  font-size: 0.8125rem;
+}
+
+.footer-tools-label {
+  color: #888;
+  font-weight: 500;
+}
+
 /* Hero Section */
 .hero {
   text-align: center;
@@ -250,6 +267,24 @@ a:hover {
 .feature-card p {
   color: var(--gray-600);
   font-size: 0.9375rem;
+}
+
+.feature-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.feature-card-link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary);
+  text-decoration: none;
+}
+
+.feature-card-link:hover h3 {
+  color: var(--primary);
 }
 
 /* Results Page */

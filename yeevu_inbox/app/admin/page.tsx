@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 const API_BASE = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
 const apiPath = (path: string) => `${API_BASE}${path}`;
 
-type UserTier = 'free' | 'premium' | 'unlimited';
+type UserTier = 'free' | 'growth' | 'scale' | 'enterprise';
 
 interface RecentScan {
   id: string;
@@ -51,9 +51,10 @@ function Bar({ value, max, color = '#3b82f6' }: { value: number; max: number; co
 }
 
 const TIER_COLORS: Record<UserTier, string> = {
-  free: '#64748b',
-  premium: '#3b82f6',
-  unlimited: '#a855f7',
+  free:       '#64748b',
+  growth:     '#3b82f6',
+  scale:      '#8b5cf6',
+  enterprise: '#a855f7',
 };
 
 function TierBadge({ tier }: { tier: UserTier }) {
@@ -139,8 +140,9 @@ function ManageTiers({ rows, onRefresh }: { rows: UserTierRow[]; onRefresh: () =
                   }}
                 >
                   <option value="free">free</option>
-                  <option value="premium">premium</option>
-                  <option value="unlimited">unlimited</option>
+                  <option value="growth">growth</option>
+                  <option value="scale">scale</option>
+                  <option value="enterprise">enterprise</option>
                 </select>
               </td>
               <td style={{ textAlign: 'right', padding: '6px 0' }}>

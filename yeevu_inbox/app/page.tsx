@@ -127,41 +127,41 @@ export default function HomePage() {
       )}
 
       <section className="features">
-        <div className="feature-card">
+        <Link href="/dmarc-checker" className="feature-card feature-card-link">
           <div className="feature-icon">📋</div>
           <h3>DMARC Check</h3>
           <p>
             Analyzes your DMARC policy configuration, alignment settings, and
             reporting addresses.
           </p>
-        </div>
+        </Link>
 
-        <div className="feature-card">
+        <Link href="/spf-checker" className="feature-card feature-card-link">
           <div className="feature-icon">🛡️</div>
           <h3>SPF Check</h3>
           <p>
             Validates your Sender Policy Framework record to ensure only authorized
             servers can send emails on your behalf.
           </p>
-        </div>
+        </Link>
 
-        <div className="feature-card">
+        <Link href="/dkim-checker" className="feature-card feature-card-link">
           <div className="feature-icon">🔐</div>
           <h3>DKIM Check</h3>
           <p>
             Verifies your DomainKeys Identified Mail configuration and key strength
             for email authentication.
           </p>
-        </div>
+        </Link>
 
-        <div className="feature-card">
+        <Link href="/mx-checker" className="feature-card feature-card-link">
           <div className="feature-icon">📬</div>
           <h3>MX Records</h3>
           <p>
             Validates your Mail Exchange records to ensure email can be delivered
             to your domain with proper redundancy.
           </p>
-        </div>
+        </Link>
 
         <div className="feature-card">
           <div className="feature-icon">🔌</div>
@@ -172,14 +172,14 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="feature-card">
+        <Link href="/blacklist-checker" className="feature-card feature-card-link">
           <div className="feature-icon">🚫</div>
           <h3>Blacklist Check</h3>
           <p>
             Checks if your mail server IPs are listed on major email blacklists
             that could block your emails.
           </p>
-        </div>
+        </Link>
 
         <div className="feature-card">
           <div className="feature-icon">🔒</div>

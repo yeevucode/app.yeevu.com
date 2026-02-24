@@ -54,6 +54,14 @@ export default async function RootLayout({
           </header>
           <main className="main">{children}</main>
           <footer className="footer">
+            <div className="footer-tools">
+              <span className="footer-tools-label">Free Tools:</span>
+              <Link href="/dmarc-checker">DMARC Checker</Link>
+              <Link href="/spf-checker">SPF Checker</Link>
+              <Link href="/dkim-checker">DKIM Checker</Link>
+              <Link href="/mx-checker">MX Lookup</Link>
+              <Link href="/blacklist-checker">Blacklist Checker</Link>
+            </div>
             <p>&copy; {new Date().getFullYear()} <a href="https://yeevu.com">Yeevu AI</a></p>
           </footer>
         </div>

@@ -77,12 +77,18 @@ export async function GET(
     );
   }
 
+  // maxAge controls how old a cached result is allowed to be for this user's tier.
+  // Preflight calculates this from the user's tier and passes it here.
+  // 0 = always run live (enterprise / real-time tier).
+  const maxAgeParam = searchParams.get('maxAge');
+  const maxAgeSeconds = maxAgeParam !== null ? parseInt(maxAgeParam, 10) : CHECK_TTL_SECONDS[check] ?? 1800;
+
   const ttl = CHECK_TTL_SECONDS[check];
   const kv = ttl !== undefined ? await getCacheKV() : null;
 
-  // Serve from cache if available
-  if (kv && ttl !== undefined) {
-    const cached = await getCachedResult(kv, check, domain);
+  // Serve from cache if result is fresh enough for the user's tier
+  if (kv && ttl !== undefined && maxAgeSeconds > 0) {
+    const cached = await getCachedResult(kv, check, domain, maxAgeSeconds);
     if (cached) {
       return NextResponse.json({
         check,
@@ -97,7 +103,7 @@ export async function GET(
   try {
     const result = await checkFn(domain);
 
-    // Write to cache (non-blocking)
+    // Write to cache (non-blocking) — always write with full TTL so lower tiers can use it
     if (kv && ttl !== undefined) {
       setCachedResult(kv, check, domain, result, ttl).catch(() => {});
     }

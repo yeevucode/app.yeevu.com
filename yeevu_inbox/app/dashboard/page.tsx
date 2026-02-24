@@ -42,7 +42,7 @@ interface ProjectLimits {
   current: number;
   limit: number | null;
   canAdd: boolean;
-  tier: 'free' | 'premium' | 'unlimited';
+  tier: 'free' | 'growth' | 'scale' | 'enterprise';
 }
 
 export default function DashboardPage() {
@@ -236,6 +236,9 @@ export default function DashboardPage() {
     });
   };
 
+  const isOverLimit = !!limits && limits.limit !== null && limits.current > limits.limit;
+  const nextTierLabel = limits?.tier === 'free' ? 'Growth' : limits?.tier === 'growth' ? 'Scale' : 'Enterprise';
+
   if (loading) {
     return (
       <div className="dashboard-loading">
@@ -268,7 +271,11 @@ export default function DashboardPage() {
         </div>
         {limits && (
           <div className="property-limits">
-            <span className="limit-count">
+            <span className="limit-count" style={
+              limits.limit !== null && limits.current > limits.limit
+                ? { color: '#ef4444' }
+                : undefined
+            }>
               {limits.current} / {limits.limit ?? '∞'}
             </span>
             <span className="limit-label">projects</span>
@@ -278,9 +285,9 @@ export default function DashboardPage() {
                 padding: '2px 6px',
                 borderRadius: 4,
                 marginLeft: 8,
-                background: limits.tier === 'unlimited' ? '#a855f722' : '#3b82f622',
-                color: limits.tier === 'unlimited' ? '#a855f7' : '#3b82f6',
-                border: `1px solid ${limits.tier === 'unlimited' ? '#a855f744' : '#3b82f644'}`,
+                background: limits.tier === 'enterprise' ? '#a855f722' : limits.tier === 'scale' ? '#8b5cf622' : '#3b82f622',
+                color: limits.tier === 'enterprise' ? '#a855f7' : limits.tier === 'scale' ? '#8b5cf6' : '#3b82f6',
+                border: `1px solid ${limits.tier === 'enterprise' ? '#a855f744' : limits.tier === 'scale' ? '#8b5cf644' : '#3b82f644'}`,
                 textTransform: 'uppercase' as const,
                 letterSpacing: 0.5,
               }}>
@@ -290,6 +297,43 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {isOverLimit && limits && (
+        <div style={{
+          margin: '0 0 1.5rem',
+          padding: '1rem 1.25rem',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.4)',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap' as const,
+        }}>
+          <span style={{ color: '#fca5a5', fontSize: '0.9rem' }}>
+            You have <strong>{limits.current}</strong> projects but your current plan allows <strong>{limits.limit}</strong>.
+            Remove projects to continue, or upgrade to keep full access.
+          </span>
+          <a
+            href="https://portal.tkwebhosts.com/store/yeevu-ai/email-deliverability-checker"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flexShrink: 0,
+              padding: '0.375rem 0.875rem',
+              background: '#ef4444',
+              color: '#fff',
+              borderRadius: '6px',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            Upgrade to {nextTierLabel}
+          </a>
+        </div>
+      )}
 
       {projects.length === 0 ? (
         <div className="dashboard-empty">
@@ -436,7 +480,7 @@ export default function DashboardPage() {
                           <select
                             value={project.folder ?? ''}
                             onChange={e => handleMoveSelect(project.domain, e.target.value)}
-                            disabled={movingDomain === project.domain}
+                            disabled={movingDomain === project.domain || isOverLimit}
                             style={{
                               width: '100%',
                               padding: '0.375rem 0.625rem',
@@ -494,12 +538,15 @@ export default function DashboardPage() {
                           <Link
                             href={`/results?domain=${encodeURIComponent(project.domain)}`}
                             className="action-btn view"
+                            aria-disabled={isOverLimit}
+                            onClick={isOverLimit ? (e) => e.preventDefault() : undefined}
+                            style={isOverLimit ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
                           >
                             View Details
                           </Link>
                           <button
                             onClick={() => rescanProject(project.domain)}
-                            disabled={scanningDomain === project.domain}
+                            disabled={scanningDomain === project.domain || isOverLimit}
                             className="action-btn rescan"
                           >
                             {scanningDomain === project.domain ? 'Scanning...' : 'Rescan'}

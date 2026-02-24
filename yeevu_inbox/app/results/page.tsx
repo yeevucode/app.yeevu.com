@@ -725,6 +725,7 @@ function ResultsContent() {
   const [limitReached, setLimitReached] = useState(false);
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
   const [analyticsEventId, setAnalyticsEventId] = useState<string | null>(null);
+  const [cacheMaxAge, setCacheMaxAge] = useState<number>(1800); // default: 30 min (free tier)
 
   // Project save state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -890,7 +891,7 @@ function ResultsContent() {
     if (!domain) return;
 
     try {
-      const response = await fetch(apiPath(`/api/scan/${checkType}?domain=${encodeURIComponent(domain)}`));
+      const response = await fetch(apiPath(`/api/scan/${checkType}?domain=${encodeURIComponent(domain)}&maxAge=${cacheMaxAge}`));
       const data = await response.json();
 
       setChecks(prev => ({
@@ -911,7 +912,7 @@ function ResultsContent() {
         },
       }));
     }
-  }, [domain]);
+  }, [domain, cacheMaxAge]);
 
 
   // Preflight: validate domain and blocklist before firing checks
@@ -958,6 +959,7 @@ function ResultsContent() {
         }
 
         if (data?.eventId) setAnalyticsEventId(data.eventId);
+        if (typeof data?.cacheMaxAge === 'number') setCacheMaxAge(data.cacheMaxAge);
         setPreflightReady(true);
       } catch {
         if (cancelled) return;

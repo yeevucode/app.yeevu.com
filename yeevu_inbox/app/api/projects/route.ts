@@ -100,8 +100,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: tier === 'free'
-            ? `Free accounts can save ${limit} domain. Upgrade to Premium or Unlimited to save more.`
-            : `Premium accounts can save up to ${limit} domains. Upgrade to Unlimited for no limit.`,
+            ? `Free accounts can save ${limit} domain. Upgrade to Growth or Scale to save more.`
+            : tier === 'growth'
+            ? `Growth accounts can save up to ${limit} domains. Upgrade to Scale for 50 domains, or Enterprise for unlimited.`
+            : `Scale accounts can save up to ${limit} domains. Upgrade to Enterprise for unlimited projects.`,
           upgradeRequired: true,
           tier,
           limit,

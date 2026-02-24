@@ -13,10 +13,15 @@ import { checkRateLimit, RateLimitResult, DOStub } from '../../../../lib/rate-li
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getDB, insertScanEvent } from '../../../../lib/utils/analytics';
 import { generateScanId } from '../../../../lib/utils/id';
+import {
+  getUserTier,
+  UserTier,
+  TIER_RATE_LIMITS,
+  TIER_CACHE_MAX_AGE_SECONDS,
+  ANON_CACHE_MAX_AGE_SECONDS,
+} from '../../../../lib/utils/tier';
 
-const ANON_LIMITS = { hourly: 10, daily: 50 };
-const AUTH_LIMITS = { hourly: 60, daily: 300 };
-const DOMAIN_LIMITS = { hourly: 30, daily: 300 };
+const ANON_LIMITS = { hourly: 2, daily: 50 };
 
 // Local interface — avoids dependency on @cloudflare/workers-types globals
 interface DOId { readonly id: string }
@@ -37,25 +42,19 @@ async function getRateLimiterNS(): Promise<RateLimiterNS | null> {
 async function enforceRateLimits(
   ns: RateLimiterNS,
   ip: string,
-  domain: string,
-  userId: string | null
+  userId: string | null,
+  tierLimits: { hourly: number; daily: number }
 ): Promise<{ rateLimited: boolean; retryAfter?: number }> {
-  // Always check the domain dimension.
-  // For anonymous users, also check the IP dimension (ANON_LIMITS).
-  // For authenticated users, check the user dimension (AUTH_LIMITS) instead —
-  // no need for IP limiting once the user is identified.
-  const checks: Promise<RateLimitResult>[] = [
-    checkRateLimit(ns.get(ns.idFromName(`domain:${domain}`)), DOMAIN_LIMITS),
-    userId
-      ? checkRateLimit(ns.get(ns.idFromName(`user:${userId}`)), AUTH_LIMITS)
-      : checkRateLimit(ns.get(ns.idFromName(`ip:${ip}`)), ANON_LIMITS),
-  ];
+  // Authenticated users are identified by userId — no IP check needed.
+  // Anonymous users are gated by IP.
+  const limiterKey = userId ? `user:${userId}` : `ip:${ip}`;
+  const result: RateLimitResult = await checkRateLimit(
+    ns.get(ns.idFromName(limiterKey)),
+    tierLimits
+  );
 
-  const results = await Promise.all(checks);
-  const blocked = results.find((r) => !r.allowed);
-
-  if (blocked) {
-    return { rateLimited: true, retryAfter: blocked.retryAfter };
+  if (!result.allowed) {
+    return { rateLimited: true, retryAfter: result.retryAfter };
   }
 
   return { rateLimited: false };
@@ -93,10 +92,27 @@ export async function GET(request: NextRequest) {
   const forwarded = request.headers.get('X-Forwarded-For');
   const ip = forwarded ? forwarded.split(',')[0].trim() : (request.headers.get('CF-Connecting-IP') ?? null);
 
+  // Resolve the user's tier (authenticated only; anonymous always 'free' for limit purposes)
+  let tier: UserTier = 'free';
+  if (isAuthenticated && userId) {
+    try {
+      const { env } = await getCloudflareContext();
+      const db = getDB(env as Record<string, unknown>);
+      if (db) {
+        tier = await getUserTier(db as Parameters<typeof getUserTier>[0], userId);
+      }
+    } catch { /* local dev — no DB */ }
+  }
+
+  const rateLimits = isAuthenticated ? TIER_RATE_LIMITS[tier] : ANON_LIMITS;
+  const cacheMaxAge = isAuthenticated
+    ? TIER_CACHE_MAX_AGE_SECONDS[tier]
+    : ANON_CACHE_MAX_AGE_SECONDS;
+
   // Server-side rate limiting via Durable Objects (Cloudflare only)
   const rateLimiterNS = await getRateLimiterNS();
   if (rateLimiterNS) {
-    const rl = await enforceRateLimits(rateLimiterNS, ip ?? 'unknown', domain, userId);
+    const rl = await enforceRateLimits(rateLimiterNS, ip ?? 'unknown', userId, rateLimits);
     if (rl.rateLimited) {
       return NextResponse.json(
         { error: 'Too many requests', rateLimited: true, retryAfter: rl.retryAfter },
@@ -109,7 +125,6 @@ export async function GET(request: NextRequest) {
   }
 
   // Analytics: insert scan event (Cloudflare only)
-  // ctx.waitUntil() ensures the write completes even after the response is sent.
   const eventId = generateScanId('evt');
   try {
     const { env, ctx } = await getCloudflareContext();
@@ -128,21 +143,21 @@ export async function GET(request: NextRequest) {
     }
   } catch { /* local dev — no DB binding */ }
 
-  // Authenticated users get unlimited scans (beyond rate limiting)
+  // Authenticated users get access based on their tier (already rate-limited above)
   if (isAuthenticated) {
     return NextResponse.json({
       allowed: true,
       authenticated: true,
-      unlimited: true,
+      tier,
+      cacheMaxAge,
       eventId,
     });
   }
 
-  // Anonymous users: check cookie-based usage limit
+  // Anonymous users: check cookie-based daily usage limit
   const usage = await checkUsageLimit();
 
   if (!usage.allowed) {
-    // Record limit hit
     try {
       const { env, ctx } = await getCloudflareContext();
       const db = getDB(env as Record<string, unknown>);
@@ -162,7 +177,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(getLimitReachedError(), { status: 403 });
   }
 
-  // Increment usage and set cookie
   const newUsageValue = await incrementUsage();
 
   const response = NextResponse.json({
@@ -170,6 +184,7 @@ export async function GET(request: NextRequest) {
     authenticated: false,
     remaining: usage.remaining - 1,
     limit: FREE_SCANS_PER_DAY,
+    cacheMaxAge,
     eventId,
   });
 
