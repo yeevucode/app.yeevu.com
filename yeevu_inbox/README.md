@@ -50,34 +50,102 @@ npm run lint
 
 ## Deployment (Cloudflare Workers)
 
+Two environments are configured: **staging** and **production**. Always deploy to staging first, verify, then promote to production.
+
+---
+
+### Environments
+
+| | Staging | Production |
+|---|---|---|
+| **URL** | `https://deliverability-yeevu-staging.domains-12a.workers.dev/deliverability` | `https://app.yeevu.com/deliverability` |
+| **Worker** | `deliverability-yeevu-staging` | `deliverability-yeevu` |
+| **KV** | `staging-PROJECTS_KV` / `staging-CACHE_KV` | `PROJECTS_KV` / `CACHE_KV` |
+| **D1** | `yeevu-inbox-analytics-staging` | `yeevu-inbox-analytics` |
+| **Data** | Isolated — separate KV + D1 | Live |
+
+---
+
+### Deploy to Staging
+
 ```bash
-# Build and deploy in one step
+npm run deploy:staging
+```
+
+Test at: `https://deliverability-yeevu-staging.domains-12a.workers.dev/deliverability`
+
+### Deploy to Production
+
+```bash
 npm run deploy
 ```
 
-This runs `opennextjs-cloudflare build && opennextjs-cloudflare deploy`.
+---
 
-**Required Cloudflare secrets** (set via `wrangler secret put`):
+### First-Time Staging Setup
+
+If recreating the staging environment from scratch:
+
+**1. Create Cloudflare resources:**
+```bash
+npx wrangler kv namespace create PROJECTS_KV --env staging
+npx wrangler kv namespace create CACHE_KV --env staging
+npx wrangler d1 create yeevu-inbox-analytics-staging
+```
+Update the resulting IDs in `wrangler.toml` under `[env.staging]`.
+
+**2. Apply D1 schema to staging:**
+```bash
+npx wrangler d1 execute yeevu-inbox-analytics-staging --remote --command "
+CREATE TABLE IF NOT EXISTS scan_events (id TEXT PRIMARY KEY, ts INTEGER NOT NULL, domain TEXT NOT NULL, auth_status TEXT NOT NULL, user_id TEXT, user_email TEXT, config_score INTEGER, final_score INTEGER, reputation_tier TEXT, mx_status TEXT, spf_status TEXT, dkim_status TEXT, dmarc_status TEXT, smtp_status TEXT, limit_hit INTEGER NOT NULL DEFAULT 0, ip TEXT);
+CREATE TABLE IF NOT EXISTS project_saves (id TEXT PRIMARY KEY, ts INTEGER NOT NULL, user_id TEXT NOT NULL, user_email TEXT, domain TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, user_email TEXT, tier TEXT NOT NULL DEFAULT 'free', updated_at INTEGER NOT NULL);
+"
+```
+
+**3. Set secrets on staging worker:**
+```bash
+npx wrangler secret put AUTH0_CLIENT_ID --env staging
+npx wrangler secret put AUTH0_CLIENT_SECRET --env staging
+npx wrangler secret put AUTH0_SECRET --env staging   # generate with: openssl rand -hex 32
+```
+
+**4. Add staging URLs to Auth0:**
+
+In Auth0 dashboard → Applications → your app → Settings, add to the existing lists:
+
+| Field | Value |
+|---|---|
+| Allowed Callback URLs | `https://deliverability-yeevu-staging.domains-12a.workers.dev/deliverability/api/auth/callback` |
+| Allowed Logout URLs | `https://deliverability-yeevu-staging.domains-12a.workers.dev/deliverability` |
+| Allowed Web Origins | `https://deliverability-yeevu-staging.domains-12a.workers.dev` |
+
+---
+
+### Required Cloudflare Secrets (both environments)
+
+Set via `wrangler secret put <NAME> [--env staging]`:
 
 ```
-AUTH0_SECRET
-AUTH0_CLIENT_ID
-AUTH0_CLIENT_SECRET
-AUTH0_ISSUER_BASE_URL
+AUTH0_CLIENT_ID       — from Auth0 application settings
+AUTH0_CLIENT_SECRET   — from Auth0 application settings
+AUTH0_SECRET          — long random string (openssl rand -hex 32)
 ```
 
-**`wrangler.toml` vars:**
+**`wrangler.toml` vars** (non-secret, committed to repo):
 
 ```toml
 NEXT_PUBLIC_BASE_PATH = "/deliverability"
-AUTH0_BASE_URL = "https://app.yeevu.com/deliverability"
+AUTH0_ISSUER_BASE_URL = "https://auth.yeevu.com"
+AUTH0_BASE_URL = "https://app.yeevu.com/deliverability"   # staging differs
 AUTH0_SESSION_NAME = "yeevu_inbox_session"
 AUTH0_COOKIE_PATH = "/deliverability"
 AUTH0_TRANSACTION_COOKIE_NAME = "yeevu_inbox_tx"
 AUTH0_TRANSACTION_COOKIE_PATH = "/deliverability"
+ADMIN_USER_IDS = "<auth0-user-id>"
 ```
 
-**`.env.production`** (build-time, inlines `NEXT_PUBLIC_BASE_PATH` into client bundle):
+**`.env.production`** (build-time only — inlines `NEXT_PUBLIC_BASE_PATH` into client bundle):
 
 ```env
 NEXT_PUBLIC_BASE_PATH=/deliverability

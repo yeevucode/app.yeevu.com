@@ -9,6 +9,7 @@
     "build:cf": "opennextjs-cloudflare build && node scripts/inject-do.mjs",
     "preview": "opennextjs-cloudflare build && node scripts/inject-do.mjs && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && node scripts/inject-do.mjs && opennextjs-cloudflare deploy",
+    "deploy:staging": "opennextjs-cloudflare build && node scripts/inject-do.mjs && opennextjs-cloudflare deploy --env staging",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest",

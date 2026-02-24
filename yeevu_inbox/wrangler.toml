@@ -44,3 +44,34 @@ class_name = "RateLimiter"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RateLimiter"]
+
+# ── Staging environment ──────────────────────────────────────────────────────
+[env.staging]
+name = "deliverability-yeevu-staging"
+
+[env.staging.vars]
+NEXT_PUBLIC_BASE_PATH = "/deliverability"
+AUTH0_ISSUER_BASE_URL = "https://auth.yeevu.com"
+AUTH0_BASE_URL = "https://deliverability-yeevu-staging.domains-12a.workers.dev/deliverability"
+AUTH0_SESSION_NAME = "yeevu_inbox_session_staging"
+AUTH0_COOKIE_PATH = "/deliverability"
+AUTH0_TRANSACTION_COOKIE_NAME = "yeevu_inbox_tx_staging"
+AUTH0_TRANSACTION_COOKIE_PATH = "/deliverability"
+ADMIN_USER_IDS = "auth0|68699f577e5e9a9c0d641fa2"
+
+[[env.staging.kv_namespaces]]
+binding = "PROJECTS_KV"
+id = "8031dd859b5a4e51adbdb32f60d00939"
+
+[[env.staging.kv_namespaces]]
+binding = "CACHE_KV"
+id = "cb9f55ca7cfb46a095aff6cd5622d326"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "yeevu-inbox-analytics-staging"
+database_id = "f553f0da-abda-4690-a31f-732dc9bc6d42"
+
+[[env.staging.durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
