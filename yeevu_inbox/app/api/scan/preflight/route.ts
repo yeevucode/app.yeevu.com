@@ -40,14 +40,16 @@ async function enforceRateLimits(
   domain: string,
   userId: string | null
 ): Promise<{ rateLimited: boolean; retryAfter?: number }> {
+  // Always check the domain dimension.
+  // For anonymous users, also check the IP dimension (ANON_LIMITS).
+  // For authenticated users, check the user dimension (AUTH_LIMITS) instead —
+  // no need for IP limiting once the user is identified.
   const checks: Promise<RateLimitResult>[] = [
-    checkRateLimit(ns.get(ns.idFromName(`ip:${ip}`)), ANON_LIMITS),
     checkRateLimit(ns.get(ns.idFromName(`domain:${domain}`)), DOMAIN_LIMITS),
+    userId
+      ? checkRateLimit(ns.get(ns.idFromName(`user:${userId}`)), AUTH_LIMITS)
+      : checkRateLimit(ns.get(ns.idFromName(`ip:${ip}`)), ANON_LIMITS),
   ];
-
-  if (userId) {
-    checks.push(checkRateLimit(ns.get(ns.idFromName(`user:${userId}`)), AUTH_LIMITS));
-  }
 
   const results = await Promise.all(checks);
   const blocked = results.find((r) => !r.allowed);

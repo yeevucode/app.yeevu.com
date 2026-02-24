@@ -646,7 +646,69 @@ Expected timing for a typical scan (after parallelisation fixes):
 
 ---
 
-## 13. Known Limitations and Missing Features
+## 13. Rate Limiting
+
+Rate limiting is enforced exclusively at `/api/scan/preflight`. All 11 individual check endpoints (`/api/scan/[check]`) are **not** rate limited — the assumption is that the UI always calls preflight first.
+
+### 13.1 Layers
+
+**Layer 1 — Durable Object (server-side)**
+
+A `RateLimiter` Durable Object (`lib/rate-limiter/do.ts`) tracks request counts across two sliding windows per key. Three dimensions are checked on every preflight request:
+
+| Dimension | KV Key | Hourly | Daily | Applied to |
+|-----------|--------|--------|-------|------------|
+| Anonymous IP | `ip:{ip}` | 10 | 50 | Anonymous requests only |
+| Domain scanned | `domain:{domain}` | 30 | 300 | All requests |
+| Authenticated user | `user:{userId}` | 60 | 300 | Authenticated requests only |
+
+All applicable dimensions are checked simultaneously — the most restrictive wins. When a limit is exceeded, the endpoint returns `429` with a `Retry-After` header (seconds until the window resets).
+
+**IP extraction:** Uses `X-Forwarded-For` (set by `app-yeevu-router`) falling back to `CF-Connecting-IP`.
+
+**Layer 2 — Cookie (anonymous users only, client-side)**
+
+Cookie `yeevu_scan_usage` stores `{ count, date }`. Hard limit: **3 scans/day** per browser. Resets at midnight UTC. This check runs in addition to the Durable Object check — anonymous users must pass both.
+
+Trivially bypassable by clearing cookies. Intentional — it's a soft UX gate, not a security control.
+
+**Layer 3 — Auth bypass**
+
+Authenticated users skip the IP check and the cookie check entirely. They are checked against the domain dimension and the user dimension only.
+
+### 13.2 Dimension Interaction
+
+For an **anonymous user** scanning `example.com` from IP `1.2.3.4`, all three of these must pass:
+- `ip:1.2.3.4` — 10/hr, 50/day
+- `domain:example.com` — 30/hr, 300/day
+- Cookie — 3/day
+
+For an **authenticated user** scanning `example.com`, two must pass:
+- `domain:example.com` — 30/hr, 300/day
+- `user:auth0|xyz` — 60/hr, 300/day
+
+The domain limit (30/hr) is the tighter hourly ceiling for authenticated users — they would hit it before their personal 60/hr limit when scanning the same domain repeatedly.
+
+### 13.3 What Is Not Rate Limited
+
+- `/api/scan/[check]` — individual check endpoints (11 types)
+- `/api/projects` — project CRUD (Auth0 session required but no rate limit)
+- `/api/widget/scan` — open CORS endpoint, no rate limiting
+
+### 13.4 Implementation Files
+
+| File | Purpose |
+|------|---------|
+| `lib/rate-limiter/index.ts` | `checkRateLimit()` helper, interfaces — safe to import in Next.js |
+| `lib/rate-limiter/do.ts` | `RateLimiter` Durable Object — injected by `scripts/inject-do.mjs` at deploy time |
+| `lib/utils/usage-limit.ts` | Cookie-based anonymous limit (3/day) |
+| `app/api/scan/preflight/route.ts` | Sole enforcement point |
+
+The DO class is not bundled by opennextjs-cloudflare directly — `scripts/inject-do.mjs` appends the export to `.open-next/worker.js` post-build.
+
+---
+
+## 14. Known Limitations and Missing Features
 
 1. **No result caching** — scanning the same domain twice in quick succession runs all checks twice. No deduplication.
 2. **No actual SMTP probe** — the "SMTP" check is a DNS-only MX resolution check, not an SMTP connectivity test.

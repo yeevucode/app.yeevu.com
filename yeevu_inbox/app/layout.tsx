@@ -37,7 +37,7 @@ export default async function RootLayout({
               <a href="/dns-email-resolver/">DNS Resolver</a>
               <a href="https://ai.yeevu.com" target="_blank" rel="noopener noreferrer">Create Apps & Websites</a>
               <a href="/content-creator/">Content Creator</a>
-              <a href="/web-prompter/">Web Prompter</a>
+
               <a href="/account/">Account</a>
             </nav>
             <div className="nav-auth">

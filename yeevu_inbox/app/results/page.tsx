@@ -723,6 +723,7 @@ function ResultsContent() {
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
   const [preflightError, setPreflightError] = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
+  const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
   const [analyticsEventId, setAnalyticsEventId] = useState<string | null>(null);
 
   // Project save state
@@ -919,6 +920,7 @@ function ResultsContent() {
     setBlockedMessage(null);
     setPreflightError(null);
     setLimitReached(false);
+    setRateLimitRetryAfter(null);
 
     if (!domain) return;
 
@@ -939,6 +941,12 @@ function ResultsContent() {
 
         if (response.status === 403 && data?.limitReached) {
           setLimitReached(true);
+          setPreflightReady(true);
+          return;
+        }
+
+        if (response.status === 429 && data?.rateLimited) {
+          setRateLimitRetryAfter(data?.retryAfter ?? null);
           setPreflightReady(true);
           return;
         }
@@ -1106,6 +1114,28 @@ function ResultsContent() {
     );
   }
 
+  if (rateLimitRetryAfter !== null) {
+    const minutes = Math.ceil(rateLimitRetryAfter / 60);
+    const waitLabel = rateLimitRetryAfter < 60
+      ? `${rateLimitRetryAfter} seconds`
+      : `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    return (
+      <div className="error">
+        <div className="error-icon" style={{ fontSize: '2.5rem' }}>⏳</div>
+        <h2>Scanning Too Fast</h2>
+        <p style={{ marginBottom: '0.5rem' }}>
+          You&apos;ve hit the scan rate limit. Try again in <strong>{waitLabel}</strong>.
+        </p>
+        <p style={{ marginBottom: '1.5rem', fontSize: '0.875rem', color: 'var(--text-muted, #94a3b8)' }}>
+          Limits reset automatically — no action needed.
+        </p>
+        <Link href="/" className="back-link">
+          &larr; Scan a Different Domain
+        </Link>
+      </div>
+    );
+  }
+
   if (limitReached) {
     return (
       <div className="error">
@@ -1226,9 +1256,42 @@ function ResultsContent() {
   const dmarcPolicy = checks.dmarc.result?.details?.policy as string || 'none';
   const riskInfo = getRiskLevel(score);
 
+  const scanInProgress = ALL_CHECKS.some(c => checks[c].loading);
+
   return (
     <div className="results-dark">
-      <div className="results-dark-content">
+      {/* Scan-in-progress banner */}
+      {scanInProgress && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          background: 'rgba(15, 23, 42, 0.92)',
+          borderBottom: '1px solid rgba(99, 102, 241, 0.4)',
+          backdropFilter: 'blur(6px)',
+          padding: '0.5rem 1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          fontSize: '0.8125rem',
+          color: '#a5b4fc',
+        }}>
+          <span style={{
+            display: 'inline-block',
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#818cf8',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }} />
+          Scan in progress — leaving now will result in an incomplete score
+        </div>
+      )}
+
+      <div className="results-dark-content" style={scanInProgress ? { paddingTop: '2.5rem' } : undefined}>
         {/* Back Navigation */}
         <Link href="/" className="back-nav">
           ← Scan another domain
