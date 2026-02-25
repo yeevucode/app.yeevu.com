@@ -80,12 +80,13 @@ export default function CheckerWidget({ check, placeholder = 'example.com' }: Pr
           required
           style={{
             flex: 1,
-            padding: '0.625rem 0.875rem',
+            padding: '0.875rem 1.125rem',
             background: 'rgba(15,23,42,0.8)',
-            border: '1px solid rgba(100,116,139,0.4)',
+            border: '2px solid rgba(100,116,139,0.5)',
             borderRadius: '8px',
             color: '#e2e8f0',
-            fontSize: '0.9375rem',
+            fontSize: '1rem',
+            fontWeight: 600,
             outline: 'none',
           }}
         />
@@ -93,7 +94,7 @@ export default function CheckerWidget({ check, placeholder = 'example.com' }: Pr
           type="submit"
           disabled={loading}
           className="search-button"
-          style={{ flexShrink: 0, padding: '0.625rem 1.25rem' }}
+          style={{ flexShrink: 0, padding: '0.875rem 1.5rem' }}
         >
           {loading ? 'Checking…' : 'Check'}
         </button>

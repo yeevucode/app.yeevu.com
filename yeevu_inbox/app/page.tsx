@@ -163,14 +163,14 @@ export default function HomePage() {
           </p>
         </Link>
 
-        <div className="feature-card">
+        <Link href="/smtp-checker" className="feature-card feature-card-link">
           <div className="feature-icon">🔌</div>
           <h3>SMTP Connectivity</h3>
           <p>
             Tests SMTP server connectivity, STARTTLS support, and TLS certificate
             validation for secure email delivery.
           </p>
-        </div>
+        </Link>
 
         <Link href="/blacklist-checker" className="feature-card feature-card-link">
           <div className="feature-icon">🚫</div>
@@ -181,41 +181,41 @@ export default function HomePage() {
           </p>
         </Link>
 
-        <div className="feature-card">
+        <Link href="/mta-sts-checker" className="feature-card feature-card-link">
           <div className="feature-icon">🔒</div>
           <h3>MTA-STS Check</h3>
           <p>
             Validates MTA-STS configuration to enforce TLS encryption for
             incoming email connections.
           </p>
-        </div>
+        </Link>
 
-        <div className="feature-card">
+        <Link href="/tls-rpt-checker" className="feature-card feature-card-link">
           <div className="feature-icon">📊</div>
           <h3>TLS-RPT Check</h3>
           <p>
             Verifies TLS reporting is configured to receive reports about
             TLS connection failures.
           </p>
-        </div>
+        </Link>
 
-        <div className="feature-card">
+        <Link href="/bimi-checker" className="feature-card feature-card-link">
           <div className="feature-icon">🖼️</div>
           <h3>BIMI Record</h3>
           <p>
             Checks Brand Indicators for Message Identification to display
             your logo in email clients.
           </p>
-        </div>
+        </Link>
 
-        <div className="feature-card">
+        <Link href="/bimi-vmc-checker" className="feature-card feature-card-link">
           <div className="feature-icon">🏅</div>
           <h3>BIMI VMC</h3>
           <p>
             Validates your Verified Mark Certificate for stronger brand
             verification in supported clients.
           </p>
-        </div>
+        </Link>
       </section>
 
       <section style={{ marginTop: '3rem', textAlign: 'center' }}>

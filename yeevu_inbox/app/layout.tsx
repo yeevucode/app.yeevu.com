@@ -36,8 +36,6 @@ export default async function RootLayout({
               <Link href="/" className="active">Email Deliverability</Link>
               <a href="/dns-email-resolver/">DNS Resolver</a>
               <a href="https://ai.yeevu.com" target="_blank" rel="noopener noreferrer">Create Apps & Websites</a>
-              <a href="/content-creator/">Content Creator</a>
-
               <a href="/account/">Account</a>
             </nav>
             <div className="nav-auth">
@@ -61,6 +59,11 @@ export default async function RootLayout({
               <Link href="/dkim-checker">DKIM Checker</Link>
               <Link href="/mx-checker">MX Lookup</Link>
               <Link href="/blacklist-checker">Blacklist Checker</Link>
+              <Link href="/smtp-checker">SMTP Checker</Link>
+              <Link href="/mta-sts-checker">MTA-STS Checker</Link>
+              <Link href="/tls-rpt-checker">TLS-RPT Checker</Link>
+              <Link href="/bimi-checker">BIMI Checker</Link>
+              <Link href="/bimi-vmc-checker">BIMI VMC Checker</Link>
             </div>
             <p>&copy; {new Date().getFullYear()} <a href="https://yeevu.com">Yeevu AI</a></p>
           </footer>
