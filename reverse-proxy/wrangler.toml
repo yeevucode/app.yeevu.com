@@ -1,0 +1,10 @@
+name = "app-yeevu-router"
+main = "worker.js"
+compatibility_date = "2026-02-24"
+
+# Binds this worker to app.yeevu.com/* on deploy.
+# After first deploy, remove the old test-reverse-proxy route from the
+# Cloudflare dashboard and delete the test-reverse-proxy worker.
+routes = [
+  { pattern = "app.yeevu.com/*", zone_id = "4c7efa77b5f5c0c5a3abff5d9fa2e073" }
+]

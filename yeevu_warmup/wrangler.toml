@@ -1,0 +1,77 @@
+name = "pulse-yeevu"
+main = ".open-next/worker.js"
+compatibility_date = "2026-02-24"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+NEXT_PUBLIC_BASE_PATH = "/email_warmup"
+AUTH0_ISSUER_BASE_URL = "https://auth.yeevu.com"
+AUTH0_BASE_URL = "https://app.yeevu.com/email_warmup"
+AUTH0_SESSION_NAME = "yeevu_pulse_session"
+AUTH0_COOKIE_PATH = "/email_warmup"
+AUTH0_TRANSACTION_COOKIE_NAME = "yeevu_pulse_tx"
+AUTH0_TRANSACTION_COOKIE_PATH = "/email_warmup"
+GOOGLE_OAUTH_REDIRECT_URI = "https://app.yeevu.com/email_warmup/api/oauth/gmail/callback"
+MICROSOFT_OAUTH_REDIRECT_URI = "https://app.yeevu.com/email_warmup/api/oauth/outlook/callback"
+
+# Secrets (set via `wrangler secret put --name pulse-yeevu`):
+#   AUTH0_SECRET
+#   AUTH0_CLIENT_ID
+#   AUTH0_CLIENT_SECRET
+#   GOOGLE_CLIENT_ID
+#   GOOGLE_CLIENT_SECRET
+#   GEMINI_API_KEY
+#   CREDENTIAL_ENCRYPTION_KEY
+#   MICROSOFT_CLIENT_ID       (Phase 2)
+#   MICROSOFT_CLIENT_SECRET   (Phase 2)
+#   MICROSOFT_TENANT_ID       (Phase 2)
+
+# KV Namespace for mailbox leases, credentials, region affinity
+# Create with: wrangler kv namespace create PULSE_KV --name pulse-yeevu
+[[kv_namespaces]]
+binding = "PULSE_KV"
+id = "2b32c95c351c432280e42ff45b795f67"
+
+# D1 Database for matchmaking pool, conversations, schedules
+# Create with: wrangler d1 create pulse-db
+[[d1_databases]]
+binding = "DB"
+database_name = "pulse-db"
+database_id = "518637b7-8ed2-4358-8839-ad79f84dfae6"
+
+# Cron Triggers
+# send-loop: run matchmaker + send emails every 5 minutes
+# rescue-loop: scan spam folders + move to inbox every 15 minutes
+[triggers]
+crons = ["*/5 * * * *", "*/15 * * * *"]
+
+# ── Staging environment ───────────────────────────────────────────────────────
+[env.staging]
+name = "pulse-yeevu-staging"
+
+[env.staging.vars]
+NEXT_PUBLIC_BASE_PATH = "/email_warmup"
+AUTH0_ISSUER_BASE_URL = "https://auth.yeevu.com"
+AUTH0_BASE_URL = "https://pulse-yeevu-staging.domains-12a.workers.dev/email_warmup"
+AUTH0_SESSION_NAME = "yeevu_pulse_session_staging"
+AUTH0_COOKIE_PATH = "/email_warmup"
+AUTH0_TRANSACTION_COOKIE_NAME = "yeevu_pulse_tx_staging"
+AUTH0_TRANSACTION_COOKIE_PATH = "/email_warmup"
+GOOGLE_OAUTH_REDIRECT_URI = "https://pulse-yeevu-staging.domains-12a.workers.dev/email_warmup/api/oauth/gmail/callback"
+MICROSOFT_OAUTH_REDIRECT_URI = "https://pulse-yeevu-staging.domains-12a.workers.dev/email_warmup/api/oauth/outlook/callback"
+
+[[env.staging.kv_namespaces]]
+binding = "PULSE_KV"
+id = "REPLACE_WITH_STAGING_KV_ID"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "pulse-db-staging"
+database_id = "REPLACE_WITH_STAGING_D1_ID"
+
+[env.staging.triggers]
+crons = ["*/5 * * * *", "*/15 * * * *"]

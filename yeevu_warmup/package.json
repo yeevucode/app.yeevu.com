@@ -1,0 +1,37 @@
+{
+  "name": "yeevu-warmup",
+  "version": "0.1.0",
+  "description": "YeevuPulse — Autonomous Email Warm-up & Simulator",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:cf": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy:staging": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env staging",
+    "start": "next start",
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@auth0/nextjs-auth0": "^3.6.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260203.0",
+    "@opennextjs/cloudflare": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "wrangler": "^4.60.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

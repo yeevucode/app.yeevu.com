@@ -162,7 +162,7 @@ export function initHeader(user = null) {
                 <a href="/dns-email-resolver/">DNS Resolver</a>
                 <a href="https://ai.yeevu.com" target="_blank" rel="noopener noreferrer">Create Apps & Websites</a>
                 <a href="/content-creator/">Content Creator</a>
-                <a href="/web-prompter/">Web Prompter</a>
+
                 <a href="/account/">Account</a>
             </div>
             <div class="yeevu-nav-auth" id="yeevu-nav-auth">
