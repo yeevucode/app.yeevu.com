@@ -7,12 +7,14 @@
  * Routing rules:
  *   /deliverability/*  → deliverability-yeevu (YeevuInbox)
  *   /email_warmup/*    → pulse-yeevu (YeevuPulse)
+ *   /dns/*             → yeevu-dns-ui (YeevuDNS)
  *   everything else    → cpde2.hostypanel.com (static site origin)
  */
 
 const WORKER_ROUTES = [
   { prefix: '/deliverability', upstream: 'https://deliverability-yeevu.domains-12a.workers.dev' },
   { prefix: '/email_warmup',   upstream: 'https://pulse-yeevu.domains-12a.workers.dev' },
+  { prefix: '/dns',            upstream: 'https://yeevu-dns-ui.domains-12a.workers.dev' },
 ];
 
 const ORIGIN = 'cpde2.hostypanel.com';

@@ -1,0 +1,23 @@
+name                = "yeevu-dns-ui"
+main                = ".open-next/worker.js"
+compatibility_date  = "2026-01-25"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding   = "ASSETS"
+
+[vars]
+NEXT_PUBLIC_BASE_PATH          = "/dns"
+AUTH0_ISSUER_BASE_URL          = "https://auth.yeevu.com"
+AUTH0_BASE_URL                 = "https://app.yeevu.com/dns"
+AUTH0_SESSION_NAME             = "yeevu_dns_session"
+AUTH0_COOKIE_PATH              = "/dns"
+AUTH0_TRANSACTION_COOKIE_NAME  = "yeevu_dns_tx"
+AUTH0_TRANSACTION_COOKIE_PATH  = "/dns"
+YEEVU_DNS_API_URL              = "https://yeevu-dns.domains-12a.workers.dev"
+# BOOTSTRAP_SECRET is a Worker secret — set via: wrangler secret put BOOTSTRAP_SECRET
+
+[[kv_namespaces]]
+binding  = "DNS_KEYS_KV"
+id       = "0a600704fc0e4fab9e425ca0c7a63221"

@@ -1,0 +1,18 @@
+name            = "yeevu-dns"
+main            = "src/index.ts"
+compatibility_date  = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Non-secret runtime vars go here
+# CLOUDFLARE_API_TOKEN is a secret — set via: wrangler secret put CLOUDFLARE_API_TOKEN
+
+[[d1_databases]]
+binding      = "DB"
+database_name = "yeevu-dns"
+database_id  = "8b089989-04c8-4a47-823e-9f1d8e016357"
+
+# Create the D1 database with:
+#   wrangler d1 create yeevu-dns
+# Then apply the schema:
+#   wrangler d1 execute yeevu-dns --file=schema.sql

@@ -159,6 +159,7 @@ export function initHeader(user = null) {
             <div class="yeevu-nav-links">
                 ${!isHome ? '<a href="/">Home</a>' : ''}
                 <a href="/deliverability/">Email Deliverability</a>
+                <a href="/dns/">YeevuDNS</a>
                 <a href="/dns-email-resolver/">DNS Resolver</a>
                 <a href="https://ai.yeevu.com" target="_blank" rel="noopener noreferrer">Create Apps & Websites</a>
                 <a href="/content-creator/">Content Creator</a>

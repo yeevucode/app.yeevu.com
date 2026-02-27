@@ -1,0 +1,1533 @@
+{
+  "name": "DNS Resolver - SPF, DMARC, DKIM, A Records, CNAME",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "formTitle": "Website DNS and Email Deliverability",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Domain Name",
+              "placeholder": "=domain.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Zone ID",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Dmarc Aggregation (RUA)",
+              "placeholder": "rua@dmarcian.com"
+            },
+            {
+              "fieldLabel": "Dmarc RUF"
+            },
+            {
+              "fieldLabel": "SPF Includes",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Google"
+                  },
+                  {
+                    "option": "Microsoft Office 365"
+                  },
+                  {
+                    "option": "Mailgun"
+                  },
+                  {
+                    "option": "SendGrid"
+                  },
+                  {
+                    "option": "MailChimp"
+                  },
+                  {
+                    "option": "Zoho"
+                  },
+                  {
+                    "option": "MXRoute"
+                  }
+                ]
+              },
+              "multiselect": true
+            },
+            {
+              "fieldLabel": "Custom SPF Include"
+            },
+            {
+              "fieldLabel": "Website",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Wix"
+                  },
+                  {
+                    "option": "SquareSpace"
+                  },
+                  {
+                    "option": "Shopify"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "A Record",
+              "placeholder": "123.123.123.123"
+            },
+            {
+              "fieldLabel": "CNAME",
+              "placeholder": "email.domain.com"
+            },
+            {
+              "fieldLabel": "DKIM selector"
+            },
+            {
+              "fieldLabel": "DKIM value",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "Primary Email Provider",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Google Workspace"
+                  },
+                  {
+                    "option": "Zoho"
+                  },
+                  {
+                    "option": "MXRoute"
+                  },
+                  {
+                    "option": "Mailgun"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "More MX Records",
+              "fieldType": "textarea",
+              "placeholder": "smtp.x.com, 10"
+            },
+            {
+              "fieldLabel": "Retrieve data Old Registrar",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes"
+                  },
+                  {
+                    "option": "No"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "path": "email-deliverability"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -448,
+        -16
+      ],
+      "id": "34f1e0c9-7f03-462d-93f3-abf96a81f065",
+      "name": "On form submission",
+      "webhookId": "71b7febd-4b13-4b52-bfc0-84264d30e1b0",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "2nDiRkw4e27k1WQQ",
+          "name": "Email Deliverability User"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "DNS Configuration Completed",
+        "completionMessage": "=ID: {{ $json.messages[0].code }}\n\nSPF is now {{ $json.messages[0].message }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        480
+      ],
+      "id": "95e51151-f528-4365-af4a-367614523471",
+      "name": "Form",
+      "webhookId": "2098df0f-2953-4d2c-93a9-5700dccd4b49"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cloudflare.com/client/v4/zones/{{ $json['Zone ID'] }}/dns_records/scan ",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -96,
+        -144
+      ],
+      "id": "577276dc-5787-4049-bac9-dc6418ba5be3",
+      "name": "HTTP - Scan DNS"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.cloudflare.com/client/v4/zones/{{ $('On form submission').item.json['Zone ID'] }}/dns_records ",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        48,
+        0
+      ],
+      "id": "e391d0ca-691a-4b52-9f18-026b1dc7ef4f",
+      "name": "HTTP - List DNS Records"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4b9ca258-4c20-4f49-9245-a0b7fae3e996",
+              "leftValue": "={{ $('On form submission').item.json['SPF Includes'][0] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "e8f1c577-80bb-405d-9d9d-f67a0466d081",
+              "leftValue": "={{ $('On form submission').item.json['Custom SPF Include'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        -400
+      ],
+      "id": "6fddfaa2-61e6-41a0-ab15-05c856f7ea5e",
+      "name": "If - SPF Services"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "51d4e800-ef4a-4066-9777-e9063cb174e6",
+              "leftValue": "={{ $('On form submission').item.json['DKIM selector'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b21686a0-50cc-47e3-a269-adfd6d26bb84",
+              "leftValue": "={{ $('On form submission').item.json['DKIM value'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        -64
+      ],
+      "id": "d126468e-1d82-4ef5-af22-cd0da17a85d6",
+      "name": "If - DKIM"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c188e829-937c-4072-beff-041ea389a420",
+              "leftValue": "={{ $('On form submission').item.json['Dmarc Aggregation (RUA)'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "4d2b9476-2c9d-4f8c-b713-36bd272d05ea",
+              "leftValue": "={{ $('On form submission').item.json['Dmarc RUF'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        -240
+      ],
+      "id": "c46a5e1b-a16a-4f0b-8f5e-8e630ffc08c0",
+      "name": "If - DMARC"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4b9ca258-4c20-4f49-9245-a0b7fae3e996",
+              "leftValue": "={{ $json.result[0].name }}",
+              "rightValue": "={{ $('On form submission').item.json['Domain Name'] }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "e8f1c577-80bb-405d-9d9d-f67a0466d081",
+              "leftValue": "={{ $json.result[0].type }}",
+              "rightValue": "A",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        272
+      ],
+      "id": "87118b4b-0f07-4ef8-93e3-65e307596e5c",
+      "name": "If - A Record Exist",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const dnsRecords = $('HTTP - List DNS Records').first().json.result;\nconst API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst zoneID = $('On form submission').first().json['Zone ID'];\nconst domainName = $('On form submission').first().json['Domain Name'];\n\nfunction isEligibleForDeletion(record) {\n  if (record.type === \"A\" && record.name === domainName) {\n    return true;\n  } else if (record.name === 'www.' + domainName) {\n    return record.type === \"A\" || record.type === \"CNAME\";\n  }\n  return false;\n}\n\nasync function deleteRecords() {\n  const results = [];\n\n  for (const record of dnsRecords) {\n    if (isEligibleForDeletion(record)) {\n      const url = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records/${record.id}`;\n\n      try {\n        const response = await this.helpers.request({\n          method: 'DELETE',\n          uri: url,\n          headers: {\n            Authorization: `Bearer ${API_KEY}`,\n            'Content-Type': 'application/json',\n          },\n          json: true,\n        });\n\n        results.push({ json: { id: record.id, data: response } });\n      } catch (error) {\n        results.push({ json: { id: record.id, error: error.message } });\n      }\n    }\n  }\n  return results;\n}\n\n// Wrap it properly in an async function context\n// return (async () => {\n//   const result = await return { answer: result.found };\n// })();\nreturn deleteRecords();\n//return $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        224
+      ],
+      "id": "cdf3ea37-b919-4fee-8d16-31ef02742c59",
+      "name": "Delete A Records"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Have A records array\n// If DIY Platforms, push its A Records to A Records Array\n  // Covert Name to list of IPS,\n  // set www CNAME to pointing\n// For each IP in A Records to Array\n// For each IP in A Records Input, push to A Records Array\n//  Set wwww to point to main Domain\n// \n//const selectedPlatform = $('HTTP - List DNS Records').first().json.result;\nconst selectedPlatform = $('On form submission').first().json.Website\nconst CLOUDFLARE_API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst ZONE_ID = $('On form submission').first().json['Zone ID'];\nconst domainName = $('On form submission').first().json['Domain Name'];\n\nlet platformARecords = $('On form submission').first().json['A Record']; // Optional manual IP input (comma-separated)\nconst platform_dns_and_ips = { pointing: \"\", ips: [] };\n\n// Check for manual IPs (DIY)\nif (platformARecords) {\n  platform_dns_and_ips.pointing = \"www.\" + domainName;\n  platform_dns_and_ips.ips = platformARecords.split(\",\").map(ip => ip.trim());\n} else {\n  // Default platform DNS IPs\n  const platform_to_dns_records = {\n    wix: { www: \"www.\" + domainName, ips: [\"185.230.63.107\", \"185.230.63.186\", \"185.230.63.171\"] },\n    godaddy: { www: \"www.\" + domainName, ips: [\"198.71.233.47\", \"198.71.233.1\"] },\n    squarespace: { www: \"www.\" + domainName, ips: [\"198.185.159.144\", \"198.185.159.145\", \"198.49.23.144\", \"198.49.23.145\"] },\n    shopify: { www: \"www.\" + domainName, ips: [\"23.227.38.65\"] }\n  };\n\n  const platformDefaults = platform_to_dns_records[selectedPlatform?.toLowerCase()];\n  if (platformDefaults) {\n    platform_dns_and_ips.pointing = platformDefaults.www;\n    platform_dns_and_ips.ips = platformDefaults.ips;\n  } else {\n    throw new Error(\"Unknown or unsupported platform. Please provide A records manually.\");\n  }\n}\n\n// DNS record creator\nasync function CreateDNSRecord(recordType, name, content) {\n  const url = `https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records`;\n\n  const payload = {\n    type: recordType,\n    name: name,\n    content: content,\n    ttl: 300,\n    proxied: false,\n    comment: `${recordType} record for ${name}`,\n  };\n\n  try {\n    const response = await this.helpers.request({\n      method: 'POST',\n      uri: url,\n      headers: {\n        Authorization: `Bearer ${CLOUDFLARE_API_KEY}`,\n        'Content-Type': 'application/json',\n      },\n      body: payload,\n      json: true,\n    });\n\n    return { json: { name, type: recordType, status: 'created', response } };\n  } catch (error) {\n    return { json: { name, type: recordType, status: 'error', error: error.message } };\n  }\n}\n\n// Create A records and CNAME\nconst creationResults = [];\nfor (const ip of platform_dns_and_ips.ips) {\n  creationResults.push(await CreateDNSRecord(\"A\", domainName, ip));\n}\n\ncreationResults.push(\n  await CreateDNSRecord(\"CNAME\", platform_dns_and_ips.pointing, domainName)\n);\n\nreturn creationResults;\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        288
+      ],
+      "id": "e1209d37-0c7d-45bf-9490-cf15a4dc211e",
+      "name": "Create Website DNS Records"
+    },
+    {
+      "parameters": {
+        "jsCode": "const API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst zoneID = $('On form submission').first().json['Zone ID'];\nconst recordsToDelete = $input.first().json.txtRecords;\n\nasync function deleteRecords() {\n  const results = [];\n\n  for (const record of recordsToDelete) {\n    const url = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records/${record.id}`;\n\n    try {\n      const response = await this.helpers.request({\n        method: 'DELETE',\n        uri: url,\n        headers: {\n          Authorization: `Bearer ${API_KEY}`,\n          'Content-Type': 'application/json',\n        },\n        json: true,\n      });\n\n      results.push({ json: { id: record.id, status: 'deleted', response } });\n    } catch (error) {\n      results.push({ json: { id: record.id, status: 'error', error: error.message } });\n    }\n  }\n\n  return results;\n}\n\n// Return directly awaited async call\nawait deleteRecords();\nreturn {};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        -128
+      ],
+      "id": "28d145f2-9123-45a3-b03c-30433a121b14",
+      "name": "Delete DKIM Records"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cloudflare.com/client/v4/zones/{{ $('On form submission').item.json['Zone ID'] }}/dns_records ",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $('On form submission').item.json['DKIM selector'] }}.{{ $('On form submission').item.json['Domain Name'] }}"
+            },
+            {
+              "name": "type",
+              "value": "TXT"
+            },
+            {
+              "name": "comment",
+              "value": "Domain verification record"
+            },
+            {
+              "name": "content",
+              "value": "={{ $('On form submission').item.json['DKIM value'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        -64
+      ],
+      "id": "02b2c208-4a57-4ec1-b430-faa427ee1cd3",
+      "name": "HTTP - Create DKIM",
+      "alwaysOutputData": false,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e8f1c577-80bb-405d-9d9d-f67a0466d081",
+              "leftValue": "={{ $json.txtRecords[0].id }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        -80
+      ],
+      "id": "840181da-ecb9-40e0-9608-b56c5e676805",
+      "name": "If - DKIM OR TXT Exist",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e8f1c577-80bb-405d-9d9d-f67a0466d081",
+              "leftValue": "={{ $json.txtRecords[0].id }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        -256
+      ],
+      "id": "7adf81df-1564-413f-8d44-3a3321fb1684",
+      "name": "If - DKIM OR TXT Exist1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const domainName = $('On form submission').first().json['Domain Name'];\nconst TXTRecord = '_dmarc' + \".\" + domainName;\nconst dnsRecords = $('HTTP - List DNS Records').first().json.result;\nconst txtToBeDeleted = {txtRecords: []};\n\nfor (const record of dnsRecords) {\n  if (record.type === \"TXT\" && record.name === TXTRecord) {\n    // txtToBeDeleted.txtRecords.push({ json: { id: record.id, name: record.name, content: record.content, type: record.type } });\n        txtToBeDeleted.txtRecords.push({ id: record.id, name: record.name, content: record.content, type: record.type } );\n  }\n}\nif (txtToBeDeleted.length ===0) {\n  txtToBeDeleted.push({ error: { status: \"not found\", searchedName: TXTRecord } });\n}\n\nreturn txtToBeDeleted;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -256
+      ],
+      "id": "fd1f0364-8b93-4856-b6c0-f79796a32955",
+      "name": "Check DMARC Record Exist"
+    },
+    {
+      "parameters": {
+        "jsCode": "const domainName = $('On form submission').first().json['Domain Name'];\nconst TXTRecord = $('On form submission').first().json['DKIM selector'] + \".\" + domainName;\nconst dnsRecords = $('HTTP - List DNS Records').first().json.result;\nconst txtToBeDeleted = {txtRecords: []};\n\nfor (const record of dnsRecords) {\n  if (record.type === \"TXT\" && record.name === TXTRecord) {\n        txtToBeDeleted.txtRecords.push({ id: record.id, name: record.name, content: record.content, type: record.type } );\n  }\n}\nif (txtToBeDeleted.length ===0) {\n  txtToBeDeleted.push({ error: { status: \"not found\", searchedName: TXTRecord } });\n}\n\nreturn txtToBeDeleted;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -80
+      ],
+      "id": "85bef27b-ea46-4aa7-9a7d-7322e72868b6",
+      "name": "Find Clashing DKIM/TXT"
+    },
+    {
+      "parameters": {
+        "jsCode": "const API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst zoneID = $('On form submission').first().json['Zone ID'];\n\nconst recordsToDelete = $input.first().json.txtRecords\nasync function deleteRecords() {\n  const results = [];\n\n  for (const record of recordsToDelete) {\n      const url = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records/${record.id}`;\n\n      try {\n        const response = await this.helpers.request({\n          method: 'DELETE',\n          uri: url,\n          headers: {\n            Authorization: `Bearer ${API_KEY}`,\n            'Content-Type': 'application/json',\n          },\n          json: true,\n        });\n\n        results.push({ json: { id: record.id, data: response } });\n      } catch (error) {\n        results.push({ json: { id: record.id, error: error.message } });\n      }\n  }\n  return results;\n}\n\n// Wrap it properly in an async function context\nreturn (async () => {\n  const result = await deleteRecords();\n  return result;\n})();\n\n//return $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        -304
+      ],
+      "id": "fe9fd6d2-72fd-4a88-b995-29a8aaeb05a1",
+      "name": "Delete DMARC Records"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cloudflare.com/client/v4/zones/{{ $('On form submission').item.json['Zone ID'] }}/dns_records ",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "=_dmarc.{{ $('On form submission').item.json['Domain Name'] }}"
+            },
+            {
+              "name": "type",
+              "value": "TXT"
+            },
+            {
+              "name": "comment",
+              "value": "Domain verification record"
+            },
+            {
+              "name": "content",
+              "value": "=v=DMARC1; p=reject; pct=100; sp=none; adkim=r; aspf=r; fo=1; rf=afrf; ri=3600;{{ \n  (() => {\n    const rua = $('On form submission').item.json['Dmarc Aggregation (RUA)'] || '';\n    const validRua = rua.split(',').map(e => e.trim()).filter(e => /^[^@]+@[^@]+\\.[^@]+$/.test(e));\n    return validRua.length ? ' rua=' + validRua.map(e => 'mailto:' + e).join(',') + ';' : '';\n  })()\n}}{{ \n  (() => {\n    const ruf = $('On form submission').item.json['Dmarc RUF'] || '';\n    const validRuf = ruf.split(',').map(e => e.trim()).filter(e => /^[^@]+@[^@]+\\.[^@]+$/.test(e));\n    return validRuf.length ? ' ruf=' + validRuf.map(e => 'mailto:' + e).join(',') + ';' : '';\n  })()\n}}\n"
+            },
+            {
+              "name": "={{ $('On form submission').item.json['Dmarc RUF'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        -240
+      ],
+      "id": "2af3f0cd-55b2-4d24-9335-84144df068e3",
+      "name": "HTTP - Create DMARC Record",
+      "alwaysOutputData": false,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4b9ca258-4c20-4f49-9245-a0b7fae3e996",
+              "leftValue": "={{ $json.txtRecords[0] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        -416
+      ],
+      "id": "6e7a1d81-216e-4a1f-b220-37bbf7563ac3",
+      "name": "If - SPF Records Exist"
+    },
+    {
+      "parameters": {
+        "jsCode": "const domainName = $('On form submission').first().json['Domain Name'];\nconst dnsRecords = $('HTTP - List DNS Records').first().json.result;\nconst txtToBeDeleted = { txtRecords: [] };\n\nfor (const record of dnsRecords) {\n  if (\n    record.type === \"TXT\" &&\n    record.name === domainName &&\n    record.content.toLowerCase().includes(\"v=spf1\")\n  ) {\n    txtToBeDeleted.txtRecords.push({\n      id: record.id, name: record.name, content: record.content, type: record.type\n    });\n  }\n}\n\nif (txtToBeDeleted.txtRecords.length === 0) {\n  txtToBeDeleted.error = {\n    status: \"not found\",\n    searchedName: domainName\n  };\n}\n\nreturn txtToBeDeleted;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -416
+      ],
+      "id": "684ae5fd-3a59-48ba-8b5f-05076fdaa18f",
+      "name": "Check Current SPF"
+    },
+    {
+      "parameters": {
+        "jsCode": "const platform_to_spfs = {\n  google: \"include:_spf.google.com\",\n  microsoft: \"include:spf.protection.outlook.com\",\n  zoho: \"include:zoho.com\",\n  protonmail: \"include:_spf.protonmail.ch\",\n  mailchimp: \"include:servers.mcsv.net\",\n  sendgrid: \"include:sendgrid.net\",\n  mailgun: \"include:mailgun.org\",\n  amazon: \"include:amazonses.com\",\n  constant_contact: \"include:spf.constantcontact.com\",\n  aweber: \"include:send.aweber.com\",\n  klaviyo: \"include:klaviyo.com\",\n  activecampaign: \"include:emsd1.com\",\n  omnistend: \"include:sendgrid.net\",  // Uses SendGrid underneath\n  hubspot: \"include:_spf.hubspotemail.net\",\n  mailerlite: \"include:_spf.mailerlite.com\",\n  zendesk: \"include:mail.zendesk.com\",\n  mxroute: \"include:mxroute.com\"\n};\n\n// Base SPF\nlet spfResult = \"v=spf1\";\n\n// 1. Add selected platform includes\nconst selectedPlatforms = $('On form submission').first().json['SPF Includes'];\nfor (let platform of selectedPlatforms) {\n  // Convert to lowercase and get first word only\n  platform = platform.toLowerCase().split(' ')[0];\n  if (platform_to_spfs[platform]) {\n    spfResult += \" \" + platform_to_spfs[platform];\n  }\n}\n\n\n// 2. Add custom raw subdomain includes (e.g., _spf.custom.com)\nconst rawCustom = $('On form submission').first().json['Custom SPF Include'];\nif (rawCustom && typeof rawCustom === 'string') {\n  const subdomains = rawCustom.split(',').map(x => x.trim()).filter(Boolean);\n  for (const sub of subdomains) {\n    spfResult += ` include:${sub}`;\n  }\n}\n\n// 3. Finalize SPF string\nspfResult += \" -all\";\n\n// Get Cloudflare credentials and domain info\nconst CLOUDFLARE_API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst ZONE_ID = $('On form submission').first().json['Zone ID'];\nconst domainName = $('On form submission').first().json['Domain Name'];\n\n// DNS record creation function\nasync function CreateDNSRecord(recordType, name, content) {\n  const url = `https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records`;\n\n  const payload = {\n    type: recordType,\n    name: name,\n    content: content,\n    ttl: 300,\n    proxied: false,\n    comment: `${recordType} record for ${name}`,\n  };\n\n  try {\n    const response = await this.helpers.request({\n      method: 'POST',\n      uri: url,\n      headers: {\n        Authorization: `Bearer ${CLOUDFLARE_API_KEY}`,\n        'Content-Type': 'application/json',\n      },\n      body: payload,\n      json: true,\n    });\n\n    return { json: { name, type: recordType, status: 'created', response } };\n  } catch (error) {\n    return { json: { name, type: recordType, status: 'error', error: error.message } };\n  }\n}\n\n// Create the SPF TXT record\nconst creationResults = [];\ncreationResults.push(\n  await CreateDNSRecord(\"TXT\", domainName, `\"${spfResult}\"`)\n);\n\nreturn creationResults;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        -400
+      ],
+      "id": "aacbab2f-452b-48c0-a3d0-a3cb70ea3eaa",
+      "name": "Create SPF Records"
+    },
+    {
+      "parameters": {
+        "jsCode": "const API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst zoneID = $('On form submission').first().json['Zone ID'];\n\nconst recordsToDelete = $input.first().json.txtRecords\nasync function deleteRecords() {\n  const results = [];\n\n  for (const record of recordsToDelete) {\n      const url = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records/${record.id}`;\n\n      try {\n        const response = await this.helpers.request({\n          method: 'DELETE',\n          uri: url,\n          headers: {\n            Authorization: `Bearer ${API_KEY}`,\n            'Content-Type': 'application/json',\n          },\n          json: true,\n        });\n\n        results.push({ json: { id: record.id, data: response } });\n      } catch (error) {\n        results.push({ json: { id: record.id, error: error.message } });\n      }\n  }\n  return results;\n}\n\n// Wrap it properly in an async function context\nreturn (async () => {\n  const result = await deleteRecords();\n  return result;\n})();\n\n//return $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -464
+      ],
+      "id": "60af8c4a-b2ff-42cb-bb62-c2db3afc02be",
+      "name": "Delete SPF Record"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "060f9bcc-f40b-4dc3-aa84-b2e4f3d3ecb5",
+              "leftValue": "={{ $('On form submission').item.json.Website }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "1a0e6670-da93-493f-a431-4b08ed540416",
+              "leftValue": "={{ $('On form submission').item.json['A Record'] }}",
+              "rightValue": "\\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        288
+      ],
+      "id": "4327c536-837b-4c05-a775-6d1416a335fb",
+      "name": "Website DNS Fix"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "060f9bcc-f40b-4dc3-aa84-b2e4f3d3ecb5",
+              "leftValue": "={{ $('On form submission').item.json['Primary Email Provider'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "662d35ea-ba04-45b0-8e6d-b5004497668e",
+              "leftValue": "={{ $('On form submission').item.json['More MX Records'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        112
+      ],
+      "id": "b871589c-b2ba-4c88-8d81-5354c68b16e7",
+      "name": "Primary Email Provider/Receiver"
+    },
+    {
+      "parameters": {
+        "jsCode": "const domainName = $('On form submission').first().json['Domain Name'];\nconst TXTRecord = domainName;\nconst dnsRecords = $('HTTP - List DNS Records').first().json.result;\nconst txtToBeDeleted = {txtRecords: []};\n\nfor (const record of dnsRecords) {\n  if (record.type === \"MX\" && record.name === TXTRecord) {\n        txtToBeDeleted.txtRecords.push({ id: record.id, name: record.name, content: record.content, type: record.type } );\n  }\n}\nif (txtToBeDeleted.length ===0) {\n  txtToBeDeleted.push({ error: { status: \"not found\", searchedName: TXTRecord } });\n}\n\nreturn txtToBeDeleted;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        80
+      ],
+      "id": "ea9e894e-d844-41a5-80b0-85c204658133",
+      "name": "Find Existing MX Records"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e8f1c577-80bb-405d-9d9d-f67a0466d081",
+              "leftValue": "={{ $json.txtRecords[0].id }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        80
+      ],
+      "id": "6d29e4e1-97d6-457a-831b-5e55d184f725",
+      "name": "MX Records Exist",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get Cloudflare credentials and domain info\nconst CLOUDFLARE_API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst ZONE_ID = $('On form submission').first().json['Zone ID'];\nconst domainName = $('On form submission').first().json['Domain Name'];\nconst recordType = \"MX\";\n\n// Store results\nconst creationResults = [];\nlet deletionResults = [];\n\n// Define mail servers and priorities\nconst platform_to_mailservers = {\n  google: [{ mailserver: \"smtp.gmail.com\", priority: 1 }],\n  zoho: [{ mailserver: \"smtp.zoho.com\", priority: 1 }],\n  yahoo: [{ mailserver: \"smtp.mail.yahoo.com\", priority: 1 }],\n  mailgun: [\n    { mailserver: \"mxa.mailgun.org\", priority: 10 },\n    { mailserver: \"mxb.mailgun.org\", priority: 10 }\n  ],\n  sendgrid: [{ mailserver: \"smtp.sendgrid.net\", priority: 10 }],\n  mxroute: [{ mailserver: \"pixel.mxrouting.net\", priority: 1 }],\n  protonmail: [\n    { mailserver: \"mail.protonmail.ch\", priority: 1 },\n    { mailserver: \"mailsec.protonmail.ch\", priority: 5 }\n  ]\n};\n\nlet mailServers = [];\nconst selectedPrimaryEmailProvider = $('On form submission').first().json['Primary Email Provider'];\n\nif (selectedPrimaryEmailProvider) {\n  const platform = selectedPrimaryEmailProvider.toLowerCase().split(' ')[0];\n  if (platform_to_mailservers[platform]) {\n    mailServers = platform_to_mailservers[platform];\n  }\n\n  if (platform === \"mailgun\") {\n    const recordToDelete = [];\n    const dnsRecords = $('HTTP - List DNS Records').first().json.result;\n\n    for (const record of dnsRecords) {\n      if (record.type === \"CNAME\" && record.name === \"email.\" + domainName) {\n        recordToDelete.push(record);\n      }\n    }\n\n    // Delete old CNAMEs\n    deletionResults = await deleteRecords(recordToDelete);\n\n    // Add required CNAME\n    creationResults.push(\n      await CreateDNSRecordCNAME(\"CNAME\", \"email.\" + domainName, \"mailgun.org\", platform)\n    );\n  }\n} else {\n  const rawRecordsStr = $('On form submission').first().json['More MX Records'] || '';\n  const rawRecords = rawRecordsStr.split('\\n').filter(Boolean);\n\n  mailServers = rawRecords.map(record => {\n    const [mailserver, priority] = record.split(',').map(str => str.trim());\n    return { mailserver, priority: parseInt(priority) || 10 };\n  });\n}\n\n// Create MX Records\nfor (const mx of mailServers) {\n  creationResults.push(\n    await CreateDNSRecord(recordType, domainName, mx.mailserver, mx.priority)\n  );\n}\n\n// Function: Create DNS Record (MX)\nasync function CreateDNSRecord(recordType, name, content, priority) {\n  const url = `https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records`;\n\n  const payload = {\n    type: recordType,\n    name: name,\n    content: content,\n    ttl: 300,\n    proxied: false,\n    priority: priority,\n    comment: `${recordType} record for ${name}`,\n  };\n\n  try {\n    const response = await this.helpers.request({\n      method: 'POST',\n      uri: url,\n      headers: {\n        Authorization: `Bearer ${CLOUDFLARE_API_KEY}`,\n        'Content-Type': 'application/json',\n      },\n      body: payload,\n      json: true,\n    });\n\n    return { json: { name, type: recordType, status: 'created', response } };\n  } catch (error) {\n    return { json: { name, type: recordType, status: 'error', error: error.message } };\n  }\n}\n\n// Function: Create DNS CNAME Record\nasync function CreateDNSRecordCNAME(recordType, name, content, platform) {\n  const url = `https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records`;\n\n  const payload = {\n    type: recordType,\n    name: name,\n    content: content,\n    ttl: 300,\n    proxied: false,\n    comment: `Additional CNAME required by ${platform}`,\n  };\n\n  try {\n    const response = await this.helpers.request({\n      method: 'POST',\n      uri: url,\n      headers: {\n        Authorization: `Bearer ${CLOUDFLARE_API_KEY}`,\n        'Content-Type': 'application/json',\n      },\n      body: payload,\n      json: true,\n    });\n\n    return { json: { name, type: recordType, status: 'created', response } };\n  } catch (error) {\n    return { json: { name, type: recordType, status: 'error', error: error.message } };\n  }\n}\n\n// Function: Delete DNS Records\nasync function deleteRecords(recordsToDelete) {\n  const results = [];\n\n  for (const record of recordsToDelete) {\n    const url = `https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records/${record.id}`;\n\n    try {\n      const response = await this.helpers.request({\n        method: 'DELETE',\n        uri: url,\n        headers: {\n          Authorization: `Bearer ${CLOUDFLARE_API_KEY}`,\n          'Content-Type': 'application/json',\n        },\n        json: true,\n      });\n\n      results.push({ json: { id: record.id, name: record.name, type: record.type, status: 'deleted', response } });\n    } catch (error) {\n      results.push({ json: { id: record.id, name: record.name, type: record.type, status: 'error', error: error.message } });\n    }\n  }\n\n  return results;\n}\n\n// ✅ Return output for n8n\nreturn [...creationResults, ...deletionResults];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        112
+      ],
+      "id": "3a4937e3-55b5-4801-9891-f12b9474840a",
+      "name": "Create MX Records"
+    },
+    {
+      "parameters": {
+        "jsCode": "const API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst zoneID = $('On form submission').first().json['Zone ID'];\n\nconst recordsToDelete = $input.first().json.txtRecords\nasync function deleteRecords() {\n  const results = [];\n\n  for (const record of recordsToDelete) {\n      const url = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records/${record.id}`;\n\n      try {\n        const response = await this.helpers.request({\n          method: 'DELETE',\n          uri: url,\n          headers: {\n            Authorization: `Bearer ${API_KEY}`,\n            'Content-Type': 'application/json',\n          },\n          json: true,\n        });\n\n        results.push({ json: { id: record.id, data: response } });\n      } catch (error) {\n        results.push({ json: { id: record.id, error: error.message } });\n      }\n  }\n  return results;\n}\n\n// Wrap it properly in an async function context\nreturn (async () => {\n  const result = await deleteRecords();\n  return result;\n})();\n//return $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        48
+      ],
+      "id": "661b8af6-37af-462e-9559-dd8a9cf082fb",
+      "name": "Delete MX Records"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "197834d3-cc93-4c72-b32f-6531c22c7931",
+              "leftValue": "={{ $json['Retrieve data Old Registrar'] }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "8a952f4c-0beb-41a8-a864-12ed659991f0",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        -16
+      ],
+      "id": "70d5b699-877e-4825-b9f7-10131912e0e7",
+      "name": "Old Registrar Import"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1520,
+        -128
+      ],
+      "id": "b23218df-85d3-4c1a-a89f-854bcd9b95fd",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "060f9bcc-f40b-4dc3-aa84-b2e4f3d3ecb5",
+              "leftValue": "={{ $('On form submission').item.json.CNAME }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        480
+      ],
+      "id": "0e5960c0-4182-42c3-8923-d362f8b80134",
+      "name": "CNAME Update"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4b9ca258-4c20-4f49-9245-a0b7fae3e996",
+              "leftValue": "={{ $json.txtRecords[0].name }}",
+              "rightValue": "={{ $('On form submission').item.json['Domain Name'] }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "e8f1c577-80bb-405d-9d9d-f67a0466d081",
+              "leftValue": "={{ $json.txtRecords[0].type }}",
+              "rightValue": "CNAME",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        480
+      ],
+      "id": "88be18bb-712d-469c-9e75-dbaa05d38b43",
+      "name": "If - C NAME Exist",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const domainName = $('On form submission').first().json['Domain Name'];\nconst TXTRecord = domainName;\nconst dnsRecords = $('HTTP - List DNS Records').first().json.result;\nconst txtToBeDeleted = {txtRecords: []};\n\nfor (const record of dnsRecords) {\n  if (record.type === \"CNAME\" && record.name === TXTRecord) {\n        txtToBeDeleted.txtRecords.push({ id: record.id, name: record.name, content: record.content, type: record.type } );\n  }\n}\nif (txtToBeDeleted.length ===0) {\n  txtToBeDeleted.push({ error: { status: \"not found\", searchedName: TXTRecord } });\n}\n\nreturn txtToBeDeleted;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        480
+      ],
+      "id": "8c37d124-5d54-4199-8e12-e7daa3f7b3d4",
+      "name": "Find Existing CNAME Records"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dnsRecords = $('HTTP - List DNS Records').first().json.result;\nconst API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst zoneID = $('On form submission').first().json['Zone ID'];\nconst domainName = $('On form submission').first().json['Domain Name'];\n\nfunction isEligibleForDeletion(record) {\n  if (record.type === \"CNAME\" && record.name === domainName) {\n    return true;\n  }\n  return false;\n}\n\nasync function deleteRecords() {\n  const results = [];\n\n  for (const record of dnsRecords) {\n    if (isEligibleForDeletion(record)) {\n      const url = `https://api.cloudflare.com/client/v4/zones/${zoneID}/dns_records/${record.id}`;\n\n      try {\n        const response = await this.helpers.request({\n          method: 'DELETE',\n          uri: url,\n          headers: {\n            Authorization: `Bearer ${API_KEY}`,\n            'Content-Type': 'application/json',\n          },\n          json: true,\n        });\n\n        results.push({ json: { id: record.id, data: response } });\n      } catch (error) {\n        results.push({ json: { id: record.id, error: error.message } });\n      }\n    }\n  }\n  return results;\n}\n\n// Wrap it properly in an async function context\n// return (async () => {\n//   const result = await return { answer: result.found };\n// })();\nreturn deleteRecords();\n//return $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        448
+      ],
+      "id": "c21b23ee-d813-45f7-b6a1-9e0c57031960",
+      "name": "Delete CNAME Records1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const CLOUDFLARE_API_KEY = \"uZHufxy6MM0n3u2KM_yWQfHDWvMSbSPUl82Cw845\";\nconst ZONE_ID = $('On form submission').first().json['Zone ID'];\nconst domainName = $('On form submission').first().json['Domain Name'];\nconst cnameValue = $('On form submission').first().json.CNAME;\n\n\n// DNS record creator\nasync function CreateDNSRecord(recordType, name, content) {\n  const url = `https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records`;\n\n  const payload = {\n    type: recordType,\n    name: name,\n    content: content,\n    ttl: 300,\n    proxied: false,\n    comment: `${recordType} record for ${name}`,\n  };\n\n  try {\n    const response = await this.helpers.request({\n      method: 'POST',\n      uri: url,\n      headers: {\n        Authorization: `Bearer ${CLOUDFLARE_API_KEY}`,\n        'Content-Type': 'application/json',\n      },\n      body: payload,\n      json: true,\n    });\n\n    return { json: { name, type: recordType, status: 'created', response } };\n  } catch (error) {\n    return { json: { name, type: recordType, status: 'error', error: error.message } };\n  }\n}\nconst creationResults = [];\ncreationResults.push(\n  await CreateDNSRecord(\"CNAME\", domainName, cnameValue)\n);\n\nreturn creationResults;\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        512
+      ],
+      "id": "7d5fb4e1-4875-4f5b-bfab-5c6293c60128",
+      "name": "Create CNAME Records"
+    }
+  ],
+  "pinData": {
+    "On form submission": [
+      {
+        "json": {
+          "Domain Name": "netsbuy.com",
+          "Zone ID": "6fc14e74f87964bfa2635ba5df8f0670",
+          "Dmarc Aggregation (RUA)": "rua@dmarc.com, rua2@dmarcian.com",
+          "Dmarc RUF": "ruf1@dmarc.com",
+          "SPF Includes": [],
+          "Custom SPF Include": "",
+          "Website": "",
+          "A Record": "",
+          "CNAME": "",
+          "DKIM selector": "",
+          "DKIM value": "",
+          "Primary Email Provider": "",
+          "More MX Records": "",
+          "Retrieve data Old Registrar": "",
+          "submittedAt": "2025-06-28T18:41:40.929-04:00",
+          "formMode": "test"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Old Registrar Import",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Scan DNS": {
+      "main": [
+        [
+          {
+            "node": "HTTP - List DNS Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - List DNS Records": {
+      "main": [
+        [
+          {
+            "node": "If - SPF Services",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If - DMARC",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If - DKIM",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Website DNS Fix",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Primary Email Provider/Receiver",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CNAME Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - SPF Services": {
+      "main": [
+        [
+          {
+            "node": "Check Current SPF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "If - DKIM": {
+      "main": [
+        [
+          {
+            "node": "Find Clashing DKIM/TXT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "If - DMARC": {
+      "main": [
+        [
+          {
+            "node": "Check DMARC Record Exist",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "If - A Record Exist": {
+      "main": [
+        [
+          {
+            "node": "Delete A Records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Website DNS Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete A Records": {
+      "main": [
+        [
+          {
+            "node": "Create Website DNS Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete DKIM Records": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Create DKIM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - DKIM OR TXT Exist": {
+      "main": [
+        [
+          {
+            "node": "Delete DKIM Records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Create DKIM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - DKIM OR TXT Exist1": {
+      "main": [
+        [
+          {
+            "node": "Delete DMARC Records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Create DMARC Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check DMARC Record Exist": {
+      "main": [
+        [
+          {
+            "node": "If - DKIM OR TXT Exist1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Clashing DKIM/TXT": {
+      "main": [
+        [
+          {
+            "node": "If - DKIM OR TXT Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete DMARC Records": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Create DMARC Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - SPF Records Exist": {
+      "main": [
+        [
+          {
+            "node": "Delete SPF Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create SPF Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Current SPF": {
+      "main": [
+        [
+          {
+            "node": "If - SPF Records Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete SPF Record": {
+      "main": [
+        [
+          {
+            "node": "Create SPF Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website DNS Fix": {
+      "main": [
+        [
+          {
+            "node": "If - A Record Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Primary Email Provider/Receiver": {
+      "main": [
+        [
+          {
+            "node": "Find Existing MX Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Existing MX Records": {
+      "main": [
+        [
+          {
+            "node": "MX Records Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MX Records Exist": {
+      "main": [
+        [
+          {
+            "node": "Delete MX Records",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create MX Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete MX Records": {
+      "main": [
+        [
+          {
+            "node": "Create MX Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Old Registrar Import": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Scan DNS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - List DNS Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create SPF Records": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Create DMARC Record": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP - Create DKIM": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Create Website DNS Records": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Create MX Records": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "CNAME Update": {
+      "main": [
+        [
+          {
+            "node": "Find Existing CNAME Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - C NAME Exist": {
+      "main": [
+        [
+          {
+            "node": "Delete CNAME Records1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create CNAME Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Existing CNAME Records": {
+      "main": [
+        [
+          {
+            "node": "If - C NAME Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete CNAME Records1": {
+      "main": [
+        [
+          {
+            "node": "Create CNAME Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create CNAME Records": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8b5b82f5-92a8-4a88-afe8-4dc604887da0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "870f202c0878ae37c404b3d073ca1e8633978750a46522e1ba65b4964dd3f472"
+  },
+  "id": "TchfqOvK1dVrDyz8",
+  "tags": []
+}
