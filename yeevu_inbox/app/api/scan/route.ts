@@ -8,9 +8,10 @@ import { checkMtaSts } from '../../../lib/checks/mta-sts';
 import { checkTlsRpt } from '../../../lib/checks/tls-rpt';
 import { checkBimiRecord, checkBimiVmc } from '../../../lib/checks/bimi';
 import { checkBlacklist } from '../../../lib/checks/blacklist';
+import { checkCompliance } from '../../../lib/checks/compliance';
 import { CheckResult } from '../../../lib/types/scanner';
 import { isDomainBlocked, getBlockedDomainError } from '../../../lib/utils/blocklist';
-import { CHECK_WEIGHTS, REPUTATION_MULTIPLIERS, ReputationTier } from '../../../lib/constants/scoring';
+import { CHECK_WEIGHTS, BLACKLIST_PENALTIES, ReputationTier } from '../../../lib/constants/scoring';
 import { isValidDomain } from '../../../lib/utils/validate';
 import { generateScanId } from '../../../lib/utils/id';
 
@@ -31,6 +32,7 @@ export interface ScanResponse {
     tls_rpt?: CheckResult;
     bimi_record?: CheckResult;
     bimi_vmc?: CheckResult;
+    compliance?: CheckResult;
   };
   issues: Array<{
     severity: 'error' | 'warning' | 'info';
@@ -66,8 +68,8 @@ function createWarnErrorResult(error: Error | unknown): CheckResult {
 async function runScan(domain: string, options?: { dkim_selectors?: string[] }): Promise<ScanResponse> {
   const scanId = generateScanId();
 
-  // Run all checks in parallel
-  const [mx, spf, dkim, dmarc, smtp, mta_sts, tls_rpt, bimi_record, bimi_vmc, blacklist] = await Promise.all([
+  // Run all 11 checks in parallel
+  const [mx, spf, dkim, dmarc, smtp, mta_sts, tls_rpt, bimi_record, bimi_vmc, blacklist, compliance] = await Promise.all([
     checkMx(domain).catch(createErrorResult),
     checkSpf(domain).catch(createErrorResult),
     checkDkim(domain, options?.dkim_selectors).catch(createErrorResult),
@@ -78,23 +80,27 @@ async function runScan(domain: string, options?: { dkim_selectors?: string[] }):
     checkBimiRecord(domain).catch(createWarnErrorResult),
     checkBimiVmc(domain).catch(createWarnErrorResult),
     checkBlacklist(domain).catch(createWarnErrorResult),
+    checkCompliance(domain).catch(createWarnErrorResult),
   ]);
 
-  // Calculate config score using shared weights
-  const configScore = Math.round(
-    (mx.score * CHECK_WEIGHTS.mx +
-     spf.score * CHECK_WEIGHTS.spf +
-     dkim.score * CHECK_WEIGHTS.dkim +
-     dmarc.score * CHECK_WEIGHTS.dmarc +
-     smtp.score * CHECK_WEIGHTS.smtp) / 100
-  );
+  // Calculate weighted score across all 11 checks using shared weights
+  const checkResults: Record<string, number> = { mx: mx.score, spf: spf.score, dkim: dkim.score, dmarc: dmarc.score, smtp: smtp.score, blacklist: blacklist.score, mta_sts: mta_sts.score, tls_rpt: tls_rpt.score, bimi_record: bimi_record.score, bimi_vmc: bimi_vmc.score, compliance: compliance.score };
+  let totalWeighted = 0;
+  let totalWeight = 0;
+  for (const [check, weight] of Object.entries(CHECK_WEIGHTS)) {
+    if (checkResults[check] !== undefined) {
+      totalWeighted += checkResults[check] * weight;
+      totalWeight += weight;
+    }
+  }
+  const configScore = totalWeight > 0 ? Math.round(totalWeighted / totalWeight) : 0;
 
-  // Apply reputation multiplier from blacklist result
+  // Apply fixed blacklist penalty on top of the weighted score
   const reputationTier = (blacklist.details?.check_error
     ? 'unknown'
     : (blacklist.details?.reputation_tier ?? 'unknown')) as ReputationTier;
-  const multiplier = REPUTATION_MULTIPLIERS[reputationTier] ?? 1.0;
-  const overallScore = Math.round(configScore * multiplier);
+  const penalty = BLACKLIST_PENALTIES[reputationTier] ?? 0;
+  const overallScore = Math.max(0, configScore - penalty);
 
   // Collect issues
   const issues: ScanResponse['issues'] = [];
@@ -246,6 +252,25 @@ async function runScan(domain: string, options?: { dkim_selectors?: string[] }):
     });
   }
 
+  // Compliance issues
+  if (compliance.status === 'fail') {
+    issues.push({
+      severity: 'warning',
+      check: 'compliance',
+      title: 'Missing privacy policy and terms pages',
+      description: 'Neither a privacy policy nor terms page was found on this domain',
+      remediation: 'Add privacy policy (/privacy) and terms (/terms) pages returning HTTP 200'
+    });
+  } else if (compliance.status === 'warn') {
+    issues.push({
+      severity: 'info',
+      check: 'compliance',
+      title: 'Compliance pages incomplete',
+      description: 'Some required compliance pages or consent elements are missing',
+      remediation: 'Ensure privacy policy, terms, and consent mechanisms are present'
+    });
+  }
+
   // Collect all recommendations
   const recommendations = [
     ...(mx.recommendations || []),
@@ -257,6 +282,7 @@ async function runScan(domain: string, options?: { dkim_selectors?: string[] }):
     ...(tls_rpt.recommendations || []),
     ...(bimi_record.recommendations || []),
     ...(blacklist.recommendations || []),
+    ...(compliance.recommendations || []),
   ];
 
   return {
@@ -265,7 +291,7 @@ async function runScan(domain: string, options?: { dkim_selectors?: string[] }):
     timestamp: new Date().toISOString(),
     status: 'completed',
     score: overallScore,
-    checks: { mx, spf, dkim, dmarc, smtp, mta_sts, tls_rpt, bimi_record, bimi_vmc, blacklist },
+    checks: { mx, spf, dkim, dmarc, smtp, mta_sts, tls_rpt, bimi_record, bimi_vmc, blacklist, compliance },
     issues,
     recommendations,
   };

@@ -24,13 +24,9 @@ export interface ScanHistoryEntry {
   finalScore: number;
   configScore: number;
   reputationTier: string;
-  checks: {
-    dmarc: number;
-    spf: number;
-    dkim: number;
-    mx: number;
-    smtp: number;
-  };
+  // Keyed by check name (e.g. 'mx', 'spf', 'mta_sts'). Older entries may only have
+  // the original 5 core checks — render whatever keys are present.
+  checks: Record<string, number>;
 }
 
 export interface Project {
@@ -117,4 +113,9 @@ export interface IProjectStorage {
    * Get a single project
    */
   getProject(userId: string, domain: string): Promise<Project | null>;
+
+  /**
+   * Clear scan history for a project
+   */
+  clearHistory(userId: string, domain: string): Promise<UpdateScanResult>;
 }

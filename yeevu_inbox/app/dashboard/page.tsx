@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ORDERED_CHECKS, CHECK_WEIGHTS, BLACKLIST_PENALTIES } from '../../lib/constants/scoring';
 
 const API_BASE = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
 const apiPath = (path: string) => `${API_BASE}${path}`;
@@ -21,13 +22,7 @@ interface ScanHistoryEntry {
   finalScore: number;
   configScore: number;
   reputationTier: string;
-  checks: {
-    dmarc: number;
-    spf: number;
-    dkim: number;
-    mx: number;
-    smtp: number;
-  };
+  checks: Record<string, number>;
 }
 
 interface Project {
@@ -112,63 +107,54 @@ export default function DashboardPage() {
   const rescanProject = async (domain: string) => {
     setScanningDomain(domain);
     try {
-      const coreChecks = ['mx', 'spf', 'dkim', 'dmarc', 'smtp'];
-      const allChecks = [...coreChecks, 'blacklist'];
       const results: Record<string, { status: string; score: number }> = {};
       const checkScores: Record<string, number> = {};
-
-      const weights: Record<string, number> = {
-        dmarc: 30, spf: 25, dkim: 25, mx: 10, smtp: 10,
-      };
-
-      const reputationMultipliers: Record<string, number> = {
-        clean: 1.0, minor_only: 0.85, major: 0.5, multi_major: 0.25, unknown: 1.0,
-      };
+      const rawResults: Record<string, { result?: { status?: string; score?: number; details?: Record<string, unknown> } }> = {};
 
       await Promise.all(
-        allChecks.map(async (check) => {
+        ORDERED_CHECKS.map(async (check) => {
           const res = await fetch(apiPath(`/api/scan/${check}?domain=${encodeURIComponent(domain)}`));
           if (res.ok) {
             const data = await res.json();
+            rawResults[check] = data;
             results[check] = {
               status: data.result?.status || 'fail',
-              score: data.result?.score || 0,
+              score: data.result?.score ?? 0,
             };
-            checkScores[check] = data.result?.score || 0;
+            checkScores[check] = data.result?.score ?? 0;
           }
         })
       );
 
       let totalScore = 0;
       let totalWeight = 0;
-      for (const check of coreChecks) {
+      for (const [check, weight] of Object.entries(CHECK_WEIGHTS)) {
         if (checkScores[check] !== undefined) {
-          totalScore += checkScores[check] * (weights[check] || 0);
-          totalWeight += weights[check] || 0;
+          totalScore += checkScores[check] * weight;
+          totalWeight += weight;
         }
       }
 
       const configScore = totalWeight > 0 ? Math.round(totalScore / totalWeight) : 0;
-      const blacklistResult = results['blacklist'];
-      const reputationTier = blacklistResult ? 'clean' : 'unknown';
-      const multiplier = reputationMultipliers[reputationTier] ?? 1.0;
-      const overallScore = Math.round(configScore * multiplier);
+      const reputationTier = (rawResults['blacklist']?.result?.details?.reputation_tier as string) ?? 'unknown';
+      const penalty = BLACKLIST_PENALTIES[reputationTier] ?? 0;
+      const overallScore = Math.max(0, configScore - penalty);
 
       const timestamp = new Date().toISOString();
       const scanResult: ProjectScanResult = { timestamp, overallScore, results };
+
+      // Store all checks in canonical order so history columns are consistent.
+      const checks: Record<string, number> = {};
+      for (const check of ORDERED_CHECKS) {
+        checks[check] = checkScores[check] ?? 0;
+      }
 
       const historyEntry: ScanHistoryEntry = {
         ts: timestamp,
         finalScore: overallScore,
         configScore,
         reputationTier,
-        checks: {
-          dmarc: checkScores['dmarc'] ?? 0,
-          spf: checkScores['spf'] ?? 0,
-          dkim: checkScores['dkim'] ?? 0,
-          mx: checkScores['mx'] ?? 0,
-          smtp: checkScores['smtp'] ?? 0,
-        },
+        checks,
       };
 
       await fetch(apiPath(`/api/projects/${encodeURIComponent(domain)}`), {
@@ -429,42 +415,52 @@ export default function DashboardPage() {
                             </div>
 
                             <div className="property-checks">
-                              {Object.entries(project.lastScan.results).map(([check, result]) => (
-                                <div
-                                  key={check}
-                                  className={`check-badge ${result.status}`}
-                                  title={`${check.toUpperCase()}: ${result.score}/100`}
-                                >
-                                  {check.toUpperCase()}
-                                </div>
-                              ))}
+                              {ORDERED_CHECKS.filter(check => check in project.lastScan!.results).map((check) => {
+                                const result = project.lastScan!.results[check];
+                                return (
+                                  <div
+                                    key={check}
+                                    className={`check-badge ${result.status}`}
+                                    title={`${check.toUpperCase()}: ${result.score}/100`}
+                                  >
+                                    {check.toUpperCase()}
+                                  </div>
+                                );
+                              })}
                             </div>
 
-                            {project.scanHistory && project.scanHistory.length > 1 && (
-                              <div className="scan-history">
-                                <div className="scan-history-title">Scan History</div>
-                                <table className="scan-history-table">
-                                  <thead>
-                                    <tr>
-                                      <th>Date</th>
-                                      <th>Score</th>
-                                      <th>Config</th>
-                                      <th>Reputation</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {project.scanHistory.slice(0, 10).map((entry, i) => (
-                                      <tr key={i}>
-                                        <td>{formatDate(entry.ts)}</td>
-                                        <td style={{ color: getScoreColor(entry.finalScore) }}>{entry.finalScore}</td>
-                                        <td>{entry.configScore}</td>
-                                        <td>{entry.reputationTier}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
+                            {(() => {
+                              const history = project.scanHistory;
+                              const latest = history?.[0];
+                              const previous = history?.[1];
+                              const trend = latest && previous
+                                ? latest.finalScore - previous.finalScore
+                                : null;
+                              return (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.75rem' }}>
+                                  {trend !== null && (
+                                    <span style={{
+                                      fontSize: '0.8125rem',
+                                      color: trend > 0 ? 'var(--success)' : trend < 0 ? 'var(--danger)' : '#64748b',
+                                      fontWeight: 500,
+                                    }}>
+                                      {trend > 0 ? '↑' : trend < 0 ? '↓' : '—'}{trend !== 0 ? ` ${Math.abs(trend)} pts` : ' No change'}
+                                    </span>
+                                  )}
+                                  <Link
+                                    href={`/dashboard/projects/${encodeURIComponent(project.domain)}/history`}
+                                    style={{
+                                      marginLeft: 'auto',
+                                      fontSize: '0.8125rem',
+                                      color: '#64748b',
+                                      textDecoration: 'none',
+                                    }}
+                                  >
+                                    View History →
+                                  </Link>
+                                </div>
+                              );
+                            })()}
                           </>
                         ) : (
                           <div className="property-no-scan">

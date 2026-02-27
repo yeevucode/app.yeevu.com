@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckResult } from '../../lib/types/scanner';
-import { CHECK_WEIGHTS, REPUTATION_MULTIPLIERS, ReputationTier } from '../../lib/constants/scoring';
+import { CHECK_WEIGHTS, BLACKLIST_PENALTIES, ReputationTier } from '../../lib/constants/scoring';
 
 // Score Ring Component (Dark Theme - Segmented bars style)
 function ScoreRingDark({ score, status }: { score: number | null; status: string }) {
@@ -748,10 +748,11 @@ function ResultsContent() {
 
   const [scanId] = useState(() => `scan_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 9)}`);
 
-  // Calculate overall score from weighted checks then apply reputation multiplier.
-  // Blacklist is NOT in CHECK_WEIGHTS — it applies as a post-calculation multiplier.
-  // See wave ordering comment for why the late drop is intentional UX.
-  const calculateScore = useCallback((): { configScore: number | null; finalScore: number | null; multiplier: number; reputationTier: ReputationTier | null } => {
+  // Calculate overall score from weighted checks then apply blacklist penalty.
+  // Blacklist is included in CHECK_WEIGHTS (15%) AND triggers a fixed point penalty
+  // based on reputation tier — so serious listings have real consequences.
+  // See wave ordering comment for why blacklist loads last (intentional UX).
+  const calculateScore = useCallback((): { configScore: number | null; finalScore: number | null; penalty: number; reputationTier: ReputationTier | null } => {
     let totalWeight = 0;
     let weightedScore = 0;
 
@@ -763,24 +764,24 @@ function ResultsContent() {
       }
     }
 
-    if (totalWeight === 0) return { configScore: null, finalScore: null, multiplier: 1.0, reputationTier: null };
+    if (totalWeight === 0) return { configScore: null, finalScore: null, penalty: 0, reputationTier: null };
 
     const configScore = Math.round(weightedScore / totalWeight);
 
     const blacklistResult = checks.blacklist?.result;
     if (!blacklistResult || blacklistResult.details?.check_error) {
       // Blacklist not yet loaded or errored — show raw config score, no penalty
-      return { configScore, finalScore: configScore, multiplier: 1.0, reputationTier: null };
+      return { configScore, finalScore: configScore, penalty: 0, reputationTier: null };
     }
 
     const tier = (blacklistResult.details?.reputation_tier as ReputationTier) ?? 'unknown';
-    const multiplier = REPUTATION_MULTIPLIERS[tier] ?? 1.0;
-    const finalScore = Math.round(configScore * multiplier);
+    const penalty = BLACKLIST_PENALTIES[tier] ?? 0;
+    const finalScore = Math.max(0, configScore - penalty);
 
-    return { configScore, finalScore, multiplier, reputationTier: tier };
+    return { configScore, finalScore, penalty, reputationTier: tier };
   }, [checks]);
 
-  const { configScore, finalScore: score, multiplier: reputationMultiplier, reputationTier } = calculateScore();
+  const { configScore, finalScore: score, penalty: reputationPenalty, reputationTier } = calculateScore();
 
   // Check if user is authenticated and if domain is already saved
   useEffect(() => {
@@ -848,11 +849,17 @@ function ResultsContent() {
         configScore: configScore || 0,
         reputationTier: reputationTier ?? 'unknown',
         checks: {
-          dmarc: checks.dmarc?.result?.score ?? 0,
+          mx: checks.mx?.result?.score ?? 0,
           spf: checks.spf?.result?.score ?? 0,
           dkim: checks.dkim?.result?.score ?? 0,
-          mx: checks.mx?.result?.score ?? 0,
+          dmarc: checks.dmarc?.result?.score ?? 0,
           smtp: checks.smtp?.result?.score ?? 0,
+          blacklist: checks.blacklist?.result?.score ?? 0,
+          mta_sts: checks.mta_sts?.result?.score ?? 0,
+          tls_rpt: checks.tls_rpt?.result?.score ?? 0,
+          bimi_record: checks.bimi_record?.result?.score ?? 0,
+          bimi_vmc: checks.bimi_vmc?.result?.score ?? 0,
+          compliance: checks.compliance?.result?.score ?? 0,
         },
       };
 
@@ -1344,8 +1351,8 @@ function ResultsContent() {
           </div>
         </div>
 
-        {/* Reputation Impact Banner — shown when blacklist multiplier drops the score */}
-        {reputationMultiplier < 1.0 && configScore !== null && score !== null && (
+        {/* Reputation Impact Banner — shown when blacklist penalty drops the score */}
+        {reputationPenalty > 0 && configScore !== null && score !== null && (
           <div style={{
             margin: '1rem 0',
             padding: '0.875rem 1.25rem',
@@ -1355,8 +1362,8 @@ function ResultsContent() {
             color: '#fca5a5',
             fontSize: '0.9rem',
           }}>
-            <strong style={{ color: '#f87171' }}>Reputation Penalty Applied</strong>
-            {' '}— Configuration score was {configScore}, reduced to {score} due to a blacklist listing.
+            <strong style={{ color: '#f87171' }}>Blacklist Penalty Applied</strong>
+            {' '}— Score reduced by {reputationPenalty} points ({configScore} → {score}) due to a blacklist listing.
             See the Blacklist Check below for details.
           </div>
         )}

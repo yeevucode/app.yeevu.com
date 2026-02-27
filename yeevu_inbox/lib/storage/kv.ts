@@ -187,4 +187,21 @@ export class KVStorage implements IProjectStorage {
       ) || null
     );
   }
+
+  async clearHistory(userId: string, domain: string): Promise<UpdateScanResult> {
+    const userProjects = await this.getUserProjects(userId);
+
+    const project = userProjects.projects.find(
+      (p) => p.domain.toLowerCase() === domain.toLowerCase()
+    );
+
+    if (!project) {
+      return { success: false, error: 'Project not found' };
+    }
+
+    project.scanHistory = [];
+    await this.saveUserProjects(userProjects);
+
+    return { success: true };
+  }
 }
